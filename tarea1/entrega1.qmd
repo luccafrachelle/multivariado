@@ -1,0 +1,23 @@
+---
+title: "Entrega 1 Analisis Multivariado I"
+author: "Lucca Frachelle , Joaquín Silva , Cecila Waksman"
+format: pdf
+editor: visual
+---
+
+## Carga de librerías
+
+```{r}
+#| output: false
+library(tidyverse)
+library(FactoMineR)
+library(vcd)
+```
+
+## Carga de datos
+
+```{r}
+load('./data/bfm.RData')
+```
+
+Se cargan 3 dataframes : datos , DATOS y dato01.601

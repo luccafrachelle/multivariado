@@ -12,6 +12,7 @@ editor: visual
 library(tidyverse)
 library(FactoMineR)
 library(vcd)
+library(ca)
 ```
 
 ## Carga de datos
@@ -21,3 +22,63 @@ load('./data/bfm.RData')
 ```
 
 Se cargan 3 dataframes : datos , DATOS y dato01.601
+
+```{r}
+datos = datos %>% select(-c(17:22 , 28))
+```
+## Limpieza de datos
+```{r}
+datos %>% group_by(edadrec2) %>% select(edad) %>% summarise(rango = range(edad))
+
+```
+
+```{r}
+datos = datos %>% filter(! (edadrec2 == 1 & edad > 34))
+```
+Se borran los individuos que tienen edad mayor a 34 años y que pertenecen al grupo de 18-34 años
+
+```{r}
+datos %>% group_by(edadrec2) %>% select(edad) %>% summarise(rango = range(edad))
+```
+
+```{r}
+str(datos)
+```
+```{r}
+datos  = datos %>% mutate(ingresos.rec = as.factor(ingresos.rec))
+```
+
+```{r}
+datos2 = datos %>% mutate(ingresos.rec = as.factor(ingresos.rec),
+                         S = as.factor(S), C = as.factor(C), P = as.factor(P), O = as.factor(O),
+                         CPO = as.factor(CPO))
+```
+
+```{r}
+levels(datos2$ingresos.rec) = c('0-17', '17-24', '24-32', '32-40' , '40+' , 'NS/NC')
+levels(datos2$edadrec2) = c('18-34','35-44','45-54','55-64','65-85')
+levels(datos2$niveledu) = c('BC','BI','CBC','CBI','EP','ET', "EU" ,"PC" ,"PI" ,"SEF")
+
+```
+Se reescriben los levels para que sean legibles
+
+```{r}
+datos2 = datos2 %>% select(-c(ingresos , edad,niveledu.rec))
+datos2 = datos2 %>% rename(ingresos = ingresos.rec , edad = edadrec2)
+```
+Se dropean las variables que no se van a utilizar y se renombran las variables
+
+```{r}
+a811 = datos2 %>% select(8:11)
+MCA(a811)
+```
+
+
+
+
+
+
+
+
+
+

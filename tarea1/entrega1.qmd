@@ -144,7 +144,7 @@ MCA(datos2 %>% select(1:3)%>% mutate(across(where(is.numeric), ~ as.factor(.))))
 ```
 
 ACS:
-subdiviciones
+subdivisiones
 concatenada
 ACM:
 disjunta

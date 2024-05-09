@@ -1,0 +1,67 @@
+---
+title: "Untitled"
+author: "--"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyverse)
+library(FactoMineR)
+library(vcd)
+library(ca)
+load('data/bfm.RData')
+rm(D,DATOS,dato01.601)
+datos = datos %>% select(-c(17:22 , 28)) %>% filter(!if_any(c(1:23), is.na))
+datos %>% group_by(edadrec2) %>% select(edad) %>% summarise(rango = range(edad))
+datos2 <- datos %>% mutate(across(where(is.factor), ~ as.numeric(.)))
+datos2 = datos2 %>% select(-c(ingresos , edad,niveledu.rec))
+datos2 = datos2 %>% rename(ingresos = ingresos.rec , edad = edadrec2)
+```
+
+## R Markdown
+
+Stackear Tablas
+
+```{r}
+#algunas tienen 0 :/?
+for(j in c(12,13,14,20)){
+  stemp<-table(datos2[,j],datos2[,8])
+  for(i in 9:11){
+    stemp<-cbind(stemp,table(datos2[,j],datos2[,i]))
+  }
+  if(j==12){stackalguna<-stemp}else{stackalguna<-rbind(stackalguna,stemp)}
+}
+rm(stemp)
+
+colnames(stack)<-c("8s","8n","9s","9n","10s","10n","11s","11n")
+#Ver rec de edades
+rownames(stack)<-c("F","M","BC","BI","CB","CBI","EP","ET","EU","PC","PI","SEF","0-17","17-24","24-32","32-40","+40","NS/NC","E1","E2","E3","E4","E5")
+```
+
+```{r}
+#algunas tienen 0 :/?
+for(j in c(12,13,14,20)){
+  stemp<-table(datos2[,j],datos2[,1])
+  for(i in 2:11){
+    stemp<-cbind(stemp,table(datos2[,j],datos2[,i]))
+  }
+  if(j==12){stacktodo<-stemp}else{stacktodo<-rbind(stacktodo,stemp)}
+}
+rm(stemp)
+
+colnames(stack)<-c("1s","1n","2s","2n","3s","3n","4s","4n","5s","5n","6s","6n","7s","7n","8s","8n","9s","9n","10s","10n","11s","11n")
+#Ver rec de edades, ingresos tiene 6 lvls pero 7
+rownames(stack)<-c("F","M","BC","BI","CB","CBI","EP","ET","EU","PC","PI","SEF","0-17","17-24","24-32","32-40","+40","NS/NC","E1","E2","E3","E4","E5")
+```
+
+## Including Plots
+
+```{r}
+castack <- ca(stack)
+plot(castack)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

@@ -9,10 +9,13 @@ editor: visual
 
 ```{r}
 #| output: false
+library(factoextra)
+library(gridExtra)
 library(tidyverse)
 library(FactoMineR)
 library(vcd)
 library(ca)
+library(knitr)
 ```
 
 ## Carga de datos
@@ -30,7 +33,8 @@ datos = datos %>% select(-c(17:22 , 28)) %>% filter(!if_any(c(1:23), is.na))
 ## Limpieza de datos
 
 ```{r}
-datos %>% group_by(edadrec2) %>% select(edad) %>% summarise(rango = range(edad))
+datos %>% group_by(edadrec2) %>% select(edad) %>% summarise(rango = range(edad)) %>% kable()
+
 
 ```
 
@@ -41,118 +45,107 @@ datos = datos %>% filter(! (edadrec2 == 1 & edad > 34))
 Se borran los individuos que tienen edad mayor a 34 años y que pertenecen al grupo de 18-34 años
 
 ```{r}
-datos = datos %>% filter(! (edadrec2 == 1 & edad > 34))
 datos2 <- datos %>% mutate(across(where(is.factor), ~ as.integer(.)))
 datos2 = datos2 %>% select(-c(ingresos , edad,niveledu.rec))
 datos2 = datos2 %>% rename(ingresos = ingresos.rec , edad = edadrec2)
 ```
 
-```{r}
-datos %>% group_by(edadrec2) %>% select(edad) %>% summarise(rango = range(edad))
-```
+\newpage
 
 ```{r}
-#datos2 <- datos %>% mutate(across(where(is.factor), ~ as.numeric(.)))
-```
-
-```{r}
-#datos  = datos %>% mutate(ingresos.rec = as.factor(ingresos.rec))
-```
-
-```{r}
-# datos2 = datos %>% mutate(ingresos.rec = as.factor(ingresos.rec),
-#                          S = as.factor(S), C = as.factor(C), P = as.factor(P), O = as.factor(O),
-#                          CPO = as.factor(CPO))
-```
-
-```{r}
-# levels(datos2$ingresos.rec) = c('0-17', '17-24', '24-32', '32-40' , '40+' , 'NS/NC')
-# levels(datos2$edadrec2) = c('18-34','35-44','45-54','55-64','65-85')
-# levels(datos2$niveledu) = c('BC','BI','CBC','CBI','EP','ET', "EU" ,"PC" ,"PI" ,"SEF")
+#| warning: false
+datos %>% group_by(edadrec2) %>% select(edad) %>% summarise(rango = range(edad)) %>% kable()
 
 ```
-
-Se reescriben los levels para que sean legibles
 
 ## ACS
-
-Se analizan las variables 8 a 11
 
 ```{r}
 datos2$V8_9 <- 2*(datos2$V8-1)+datos2$V9
 datos2$V8_10 <- 2*(datos2$V8_9-1)+datos2$V10
 datos2$V8_11 <- 2*(datos2$V8_10-1)+datos2$V11
 tab_ing <- table(datos2$V8_11,  datos2$ingresos)
-tab_ing
-colnames(tab_ing) <- c('0-17', '17-24', '24-32', '32-40' , '40+' , 'NS/NC')
-rownames(tab_ing) <- c("nada", "P", "C", "CP", "D", "DP", "DC", "DCP", "B", "BP", "BC", "BCP", "BD", "BDP", "BDC", "BDCP")
-catab_ing <- ca(tab_ing)
-sum(catab_ing$rowinertia)
-sum(catab_ing$colinertia)#el mismo
-plot(catab_ing)
 ```
 
-Se agrega an análisis la edad
+Se analizan las variables 8 a 11 con la edad
 
 ```{r}
 tab_edad <- table(datos2$V8_11,  datos2$edad)
-tab_edad
-colnames(tab_edad)
-rownames(tab_edad) <- c("nada", "P", "C", "CP", "D", "DP", "DC", "DCP", "B", "BP", "BC", "BCP", "BD", "BDP", "BDC", "BDCP")
-catab_edad <- ca(tab_edad)
-sum(catab_edad$rowinertia)
-plot(catab_edad)
+rownames(tab_edad) <- c("nada", "P", "C", "CP", "D", "DP",
+                        "DC", "DCP", "B", "BP", "BC", "BCP", "BD", "BDP", "BDC", "BDCP")
+a <- CA(tab_edad)
+
+# Valores propios
+eig.val <- get_eigenvalue(a)
+eig.val
+
+fviz_eig(a)
+
+fviz_ca_biplot(a, repel = TRUE,  col.row = "cos2",
+               gradient.cols = c("#00AFBB", "#FC4E07"))
 ```
 
-Se dropean las variables que no se van a utilizar y se renombran las variables
+Se observa que la variable que mejor representada esta en el eje 1 es la variable es la edad , encontrandose a la izquierda del grafico las personas de mayor edad. Los jovenes de menor edad presentan perdida dentaria.
+
+## ACS tablas concatenadas
+
+### Funciones para hacer las tablas
 
 ```{r}
-# datos2$nivsex <- 2*(datos2$niveledu-1)+datos2$sexo
-# tab1 <- table(factor(datos2$nivsex, levels=1:20),  datos2$V8)
-# tab1
-# colnames(tab1) <- c("No", "Sí")
-# 
-# catab1 <- ca(tab1)
-# sum(catab1$rowinertia)
-# sum(catab1$colinertia)
-# plot(catab1)
-```
+for(j in c(12,13,14,20)){
+  stemp<-table(datos2[,j],datos2[,8])
+  for(i in 9:11){
+    stemp<-cbind(stemp,table(datos2[,j],datos2[,i]))
+  }
+  if(j==12){stackalguna<-stemp}else{stackalguna<-rbind(stackalguna,stemp)}
+}
+rm(stemp)
 
-```{r}
-# datos2$ingresossex <- 2*(datos2$ingresos-1)+datos2$sexo
-# tab1 <- table(datos2$ingresossex,  datos2$V8)
-# tab1
-# colnames(tab1) <- c("No", "Sí")
-# 
-# catab1 <- ca(tab1)
-# sum(catab1$rowinertia)
-# sum(catab1$colinertia)
-# plot(catab1)
-```
-
-tablas de burt
-
-```{r}
-write.csv(datos2, "datos2.csv")
+colnames(stackalguna)<-c("8s","8n","9s","9n","10s","10n","11s","11n")
+#Ver rec de edades
+rownames(stackalguna)<-c("F","M","BC","BI","CB","CBI","EP","ET","EU",
+"PC","PI","SEF","0-17","17-24","24-32","32-40",
+"+40","NS/NC","E1","E2","E3","E4","E5")
 ```
 
 ```{r}
-dummy_matrix <- model.matrix(~ . + 0, data = datos2)
-burt_table <- t(dummy_matrix) %*% dummy_matrix
+for(j in c(12,13,14,20)){
+  stemp<-table(datos2[,j],datos2[,1])
+  for(i in 2:11){
+    stemp<-cbind(stemp,table(datos2[,j],datos2[,i]))
+  }
+  if(j==12){stacktodo<-stemp}else{stacktodo<-rbind(stacktodo,stemp)}
+}
+rm(stemp)
+
+colnames(stacktodo)<-c("1s","1n","2s","2n","3s","3n","4s","4n",
+"5n","5s","6s","6n","7s","7n","8s","8n","9s","9n","10s","10n","11s","11n")
+#Ver rec de edades, ingresos tiene 6 lvls pero 7
+rownames(stacktodo)<-c("F","M","BC","BI","CB","CBI","EP","ET","EU",
+"PC","PI","SEF","0-17","17-24","24-32","32-40","+40","NS/NC","E1","E2","E3","E4","E5")
 ```
 
 ```{r}
-ej1 <- mjca(datos2[,1:11], lambda = "indicator")
+plot(ca(stackalguna))
+```
 
-plot(ej1, dim = c(1,2), map = "symmetric")
-     
-ej2 <- mjca(datos2[,1:11], lambda = "Burt")
-plot(ej2)
+En el eje principal se nota como las variables E se encuentran ordenadas , lo quiere decir que la mayoria de la variablidad en el eje 1 queda explicada por la edad. En el eje 2 , quedan arriba los s y abajo los n , lo que significa que hay una division clara entre tener problemas odontológicos y no tenerlos. Las personas que no tienen educación formal se encuentran en el cuadrante superior, lo que da a entder que estas personas tienden a tener problemas odontológicos. Otro punto importante a destacar es que la prevalencia de pip y prevalencia de bolsa se encuentran sobretodo en la gente con menor edad. Por otro lado la gente con mayor edad tiende a tener perdida de dientes.
 
+```{r}
+plot(ca(stacktodo))
+```
+
+Lo primero que se puede notar de igual forma que en el analisis anterior es que la edad es la variable que mas explica la variabilidad en el eje 1. En el eje 2 se puede notar que las personas con problemas odontológicos tienden a tener problemas de salud general. Por otro lado las personas con problemas de salud general tienden a tener problemas de salud general. En el cuadrante superior izquierdo se encuentran las personas con problemas de salud general y problemas odontológicos. En el cuadrante inferior derecho se encuentran las personas que no tienen problemas de salud general ni problemas odontológicos. En el cuadrante superior derecho se encuentran las personas con problemas de salud general pero sin problemas odontológicos. En el cuadrante inferior izquierdo se encuentran las personas con problemas odontológicos pero sin problemas de salud general.
+
+## MCA
+
+```{r}
+#| output: false
+mca811 = MCA(datos %>% select(8:11) %>% mutate(across(where(is.numeric), ~ as.factor(.))))
 ```
 
 ```{r}
-MCA(datos2 %>% select(8:11) %>% mutate(across(where(is.numeric), ~ as.factor(.))))
+fviz_mca_var(mca811, repel = TRUE , col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 ```
 
 En el Análisis de Correspondencias Múltiples realizado, los ejes identificados ofrecen una visión clara sobre las diferencias significativas entre las variables estudiadas, cada una relacionada con aspectos específicos de la salud dental. El primer eje, que explica un 40.23% de la variabilidad, destaca por su capacidad para diferenciar entre las respuestas asociadas con la variable V8 (Prev. bolsa 3 Odontológicas) y V11 (Prevalencia de PIP). Esta distinción podría indicar que la presencia o ausencia de condiciones más graves o específicas, como las bolsas periodontales y las condiciones designadas por "PIP", son factores distintivos críticos.
@@ -160,23 +153,36 @@ En el Análisis de Correspondencias Múltiples realizado, los ejes identificados
 Por otro lado, el segundo eje, que captura el 23.63% de la variación, muestra una separación clara con respecto a la variable V10 (Prevalencia de Caries). Esto indica que las caries dentales exhiben un patrón de variabilidad que es distintivamente diferente en comparación con otras condiciones dentales evaluadas. La prevalencia de caries puede estar influenciada por factores de riesgo únicos que no son tan prominentes en otras condiciones periodontales o dentales evaluadas, resaltando la necesidad de abordajes diferenciados en las estrategias de salud dental.
 
 ```{r}
-MCA(datos2 %>% select(4:7)%>% mutate(across(where(is.numeric), ~ as.factor(.))))
+#| output: false
+mca47 = MCA(datos%>% select(4:7)%>% mutate(across(where(is.numeric), ~ as.factor(.))))
+```
+
+```{r}
+fviz_mca_var(mca47, repel = TRUE , col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
+
 ```
 
 El primer eje vendria a reprsentar las condiciones relacionadas al sobre peso y obesidad ya que se observan que la razon cintrua cadera se encuentra muy cerca de la v ariable de sobrepeso y obesidad. El segundo eje no se tiene tan claro la agrupacion de las variables ya que se encuentran muy dispersas. Tambien se observa una diferencia respecto a la variable de sobrepeso y obesidad en el segundo eje. Quizas podria representar la salud en general de las personas.
 
 ```{r}
-MCA(datos2 %>% select(1:3)%>% mutate(across(where(is.numeric), ~ as.factor(.))))
+#| output: false
+MCA(datos %>% select(1:3)%>% mutate(across(where(is.numeric), ~ as.factor(.))))
 ```
 
 ```{r}
-pca_results = PCA(datos %>% select(edad, , S, C, P, O, CPO))
+#| output: false
+pca_results = PCA(datos %>% select(edad, , S, C, P, O))
+```
+
+```{r}
+fviz_pca_var(pca_results, col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 ```
 
 No hay nada muy revelador en el PCA, quizas lo que mas llame la atencion como se openen la cantidad de dientes operados a la cantidad de dientes con caries.
 
-```{r}
-MCA(datos2 %>% select(1:3)%>% mutate(across(where(is.numeric), ~ as.factor(.))))
-```
+Tablas de burt
 
-ACS: subdivisiones concatenada ACM: disjunta\` Burt
+```{r}
+dummy_matrix <- model.matrix(~ . + 0, data = datos2 %>% select(8:11))
+burt_table <- t(dummy_matrix) %*% dummy_matrix
+```

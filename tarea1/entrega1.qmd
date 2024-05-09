@@ -41,15 +41,18 @@ datos = datos %>% filter(! (edadrec2 == 1 & edad > 34))
 Se borran los individuos que tienen edad mayor a 34 años y que pertenecen al grupo de 18-34 años
 
 ```{r}
+datos = datos %>% filter(! (edadrec2 == 1 & edad > 34))
+datos2 <- datos %>% mutate(across(where(is.factor), ~ as.integer(.)))
+datos2 = datos2 %>% select(-c(ingresos , edad,niveledu.rec))
+datos2 = datos2 %>% rename(ingresos = ingresos.rec , edad = edadrec2)
+```
+
+```{r}
 datos %>% group_by(edadrec2) %>% select(edad) %>% summarise(rango = range(edad))
 ```
 
 ```{r}
-str(datos)
-```
-
-```{r}
-datos2 <- datos %>% mutate(across(where(is.factor), ~ as.numeric(.)))
+#datos2 <- datos %>% mutate(across(where(is.factor), ~ as.numeric(.)))
 ```
 
 ```{r}
@@ -71,14 +74,37 @@ datos2 <- datos %>% mutate(across(where(is.factor), ~ as.numeric(.)))
 
 Se reescriben los levels para que sean legibles
 
+## ACS
+
+Se analizan las variables 8 a 11
+
 ```{r}
-datos2 = datos2 %>% select(-c(ingresos , edad,niveledu.rec))
-datos2 = datos2 %>% rename(ingresos = ingresos.rec , edad = edadrec2)
+datos2$V8_9 <- 2*(datos2$V8-1)+datos2$V9
+datos2$V8_10 <- 2*(datos2$V8_9-1)+datos2$V10
+datos2$V8_11 <- 2*(datos2$V8_10-1)+datos2$V11
+tab_ing <- table(datos2$V8_11,  datos2$ingresos)
+tab_ing
+colnames(tab_ing) <- c('0-17', '17-24', '24-32', '32-40' , '40+' , 'NS/NC')
+rownames(tab_ing) <- c("nada", "P", "C", "CP", "D", "DP", "DC", "DCP", "B", "BP", "BC", "BCP", "BD", "BDP", "BDC", "BDCP")
+catab_ing <- ca(tab_ing)
+sum(catab_ing$rowinertia)
+sum(catab_ing$colinertia)#el mismo
+plot(catab_ing)
+```
+
+Se agrega an análisis la edad
+
+```{r}
+tab_edad <- table(datos2$V8_11,  datos2$edad)
+tab_edad
+colnames(tab_edad)
+rownames(tab_edad) <- c("nada", "P", "C", "CP", "D", "DP", "DC", "DCP", "B", "BP", "BC", "BCP", "BD", "BDP", "BDC", "BDCP")
+catab_edad <- ca(tab_edad)
+sum(catab_edad$rowinertia)
+plot(catab_edad)
 ```
 
 Se dropean las variables que no se van a utilizar y se renombran las variables
-
-
 
 ```{r}
 # datos2$nivsex <- 2*(datos2$niveledu-1)+datos2$sexo
@@ -91,6 +117,7 @@ Se dropean las variables que no se van a utilizar y se renombran las variables
 # sum(catab1$colinertia)
 # plot(catab1)
 ```
+
 ```{r}
 # datos2$ingresossex <- 2*(datos2$ingresos-1)+datos2$sexo
 # tab1 <- table(datos2$ingresossex,  datos2$V8)
@@ -103,9 +130,19 @@ Se dropean las variables que no se van a utilizar y se renombran las variables
 # plot(catab1)
 ```
 
+tablas de burt
+
+```{r}
+write.csv(datos2, "datos2.csv")
+```
+
+```{r}
+dummy_matrix <- model.matrix(~ . + 0, data = datos2)
+burt_table <- t(dummy_matrix) %*% dummy_matrix
+```
+
 ```{r}
 ej1 <- mjca(datos2[,1:11], lambda = "indicator")
-#summary(ej1)
 
 plot(ej1, dim = c(1,2), map = "symmetric")
      
@@ -114,15 +151,13 @@ plot(ej2)
 
 ```
 
-
-
 ```{r}
 MCA(datos2 %>% select(8:11) %>% mutate(across(where(is.numeric), ~ as.factor(.))))
 ```
+
 En el Análisis de Correspondencias Múltiples realizado, los ejes identificados ofrecen una visión clara sobre las diferencias significativas entre las variables estudiadas, cada una relacionada con aspectos específicos de la salud dental. El primer eje, que explica un 40.23% de la variabilidad, destaca por su capacidad para diferenciar entre las respuestas asociadas con la variable V8 (Prev. bolsa 3 Odontológicas) y V11 (Prevalencia de PIP). Esta distinción podría indicar que la presencia o ausencia de condiciones más graves o específicas, como las bolsas periodontales y las condiciones designadas por "PIP", son factores distintivos críticos.
 
 Por otro lado, el segundo eje, que captura el 23.63% de la variación, muestra una separación clara con respecto a la variable V10 (Prevalencia de Caries). Esto indica que las caries dentales exhiben un patrón de variabilidad que es distintivamente diferente en comparación con otras condiciones dentales evaluadas. La prevalencia de caries puede estar influenciada por factores de riesgo únicos que no son tan prominentes en otras condiciones periodontales o dentales evaluadas, resaltando la necesidad de abordajes diferenciados en las estrategias de salud dental.
-
 
 ```{r}
 MCA(datos2 %>% select(4:7)%>% mutate(across(where(is.numeric), ~ as.factor(.))))
@@ -137,15 +172,11 @@ MCA(datos2 %>% select(1:3)%>% mutate(across(where(is.numeric), ~ as.factor(.))))
 ```{r}
 pca_results = PCA(datos %>% select(edad, , S, C, P, O, CPO))
 ```
+
 No hay nada muy revelador en el PCA, quizas lo que mas llame la atencion como se openen la cantidad de dientes operados a la cantidad de dientes con caries.
 
 ```{r}
 MCA(datos2 %>% select(1:3)%>% mutate(across(where(is.numeric), ~ as.factor(.))))
 ```
 
-ACS:
-subdivisiones
-concatenada
-ACM:
-disjunta
-Burt
+ACS: subdivisiones concatenada ACM: disjunta\` Burt

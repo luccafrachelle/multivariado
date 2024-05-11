@@ -5,9 +5,6 @@ format: pdf
 editor: visual
 echo: false
 warning: false
-biblography: bibliografia.bib
-nocite: |
-  @*
 ---
 
 # Resumen Ejecutivo
@@ -25,19 +22,16 @@ Este trabajo se centra en analizar las asociaciones entre variables, con el fin 
 Así, nuestro análisis no solo ayuda a esclarecer la estructura de los datos y la relación entre diversas condiciones de salud, sino que también facilita el entendimiento de los factores de riesgo que afectan en la salud bucal.
 
 # Marco metodológico
+
 Para desarrollar un marco metodológico que explique el análisis de correspondencia simple con múltiples entradas y tablas concatenadas, así como el análisis de correspondencias múltiples (MCA por sus siglas en inglés), puedes seguir la siguiente estructura:
 
-1. Introducción al Análisis de Correspondencia Simple (CA)
-El Análisis de Correspondencia Simple es una técnica de análisis multivariante utilizada para explorar y visualizar las relaciones entre dos variables categóricas. Esta técnica proporciona una representación gráfica de las categorías de las variables en un espacio de baja dimensión, generalmente bidimensional, de modo que las distancias entre puntos en este espacio reflejan las diferencias en el perfil de las categorías.
+1.  Introducción al Análisis de Correspondencia Simple (CA) El Análisis de Correspondencia Simple es una técnica de análisis multivariante utilizada para explorar y visualizar las relaciones entre dos variables categóricas. Esta técnica proporciona una representación gráfica de las categorías de las variables en un espacio de baja dimensión, generalmente bidimensional, de modo que las distancias entre puntos en este espacio reflejan las diferencias en el perfil de las categorías.
 
-2. Extensión a Múltiples Entradas y Tablas Concatenadas
-Cuando se tiene más de una tabla de contingencia o datos de diferentes fuentes que deben ser analizados conjuntamente, es posible concatenar estas tablas para formar una única tabla de datos antes de realizar el análisis. Esta concatenación permite realizar un CA sobre el conjunto de datos integrado, proporcionando una visión global de las relaciones entre categorías en todas las tablas. Esto es especialmente útil para comparar grupos o categorías que se miden a través de múltiples variables o en diferentes momentos en el tiempo.
+2.  Extensión a Múltiples Entradas y Tablas Concatenadas Cuando se tiene más de una tabla de contingencia o datos de diferentes fuentes que deben ser analizados conjuntamente, es posible concatenar estas tablas para formar una única tabla de datos antes de realizar el análisis. Esta concatenación permite realizar un CA sobre el conjunto de datos integrado, proporcionando una visión global de las relaciones entre categorías en todas las tablas. Esto es especialmente útil para comparar grupos o categorías que se miden a través de múltiples variables o en diferentes momentos en el tiempo.
 
-3. Análisis de Correspondencias Múltiples (MCA)
-El Análisis de Correspondencias Múltiples es una generalización del análisis de correspondencia simple aplicable a tablas de datos que contienen más de dos variables categóricas. El objetivo del MCA es analizar la estructura de las relaciones entre varias categorías de múltiples variables categóricas y visualizar estas relaciones en un espacio multidimensional.
+3.  Análisis de Correspondencias Múltiples (MCA) El Análisis de Correspondencias Múltiples es una generalización del análisis de correspondencia simple aplicable a tablas de datos que contienen más de dos variables categóricas. El objetivo del MCA es analizar la estructura de las relaciones entre varias categorías de múltiples variables categóricas y visualizar estas relaciones en un espacio multidimensional.
 
 El MCA trata cada modalidad de las variables categóricas como una categoría independiente y las representa en un espacio factorial, donde la proximidad entre categorías indica una asociación o similitud en los perfiles de los individuos que seleccionaron estas categorías.
-
 
 ```{r}
 #| output: false
@@ -89,14 +83,18 @@ datos %>% group_by(edadrec2) %>% select(edad) %>% summarise(rango = range(edad))
 ```
 
 ```{r , results='asis'}
+#| label: tbl-tabla1
+#| tbl-cap: "Rangos etarios" 
 a = c("E1" , "E2" , "E3" , "E4" , "E5")
 b = c('18-34' , '35-44' , '45-54' , '55-64' , '65-85')
 c = as.data.frame(cbind(a,b))
 names(c) = c("Grupo" , "Rango etario")
 kable(c)
+
 ```
 
 # Análisis de corespondencia simple
+
 ## Multiples entradas
 
 ```{r}
@@ -121,6 +119,8 @@ catab_educ_ <- CA(tab_educ, col.sup = c(5, 10))
 ```
 
 ```{r}
+#| label: fig-plot1
+#| fig-cap: "ACS con mutliples entradas , V8 a V11 y edad"
 #fviz_eig(catab_educ_)
 
 fviz_ca_biplot(catab_educ_, repel = TRUE,  col.row = "cos2",
@@ -130,7 +130,6 @@ fviz_ca_biplot(catab_educ_, repel = TRUE,  col.row = "cos2",
 Este gráfico representa el plano principal generado por las variables nivel educativo y V8 a 11. En esta parte del análisis las categorías de nivel educacional: "Sin escolarización formal" (SEF) y "Estudios de posgrado" (EP), únicamente intervienen como categorías suplementarias. Aquellos individuos con un nivel de estudio PI o PC (primaria incompleta y completa, respectivamente), suelen asociarse con la prevalenca de PIP y de caries. Por otro lado, el resto de categorías que no alcanzan estudios terciarios se encuentran más asociadas a la categoría de pérdida dentaria.
 
 ## Tablas concatenadas
-
 
 ```{r}
 for(j in c(12,13,14,20)){
@@ -166,7 +165,9 @@ rownames(stacktodo)<-c("F","M","BC","BI","CB","CBI","EP","ET","EU",
 "PC","PI","SEF","0-17","17-24","24-32","32-40","+40","NS/NC","E1","E2","E3","E4","E5")
 ```
 
-```{r, fig.cap="Plano principal con variables V1 a V11, edad, ingresos y nivel educacional."}
+```{r}
+#| label: fig-plot2
+#| fig-cap: "ACS con tabla concatenada"
 plot(ca(stackalguna), main="Plano principal: tabla concatenada")
 
 ```
@@ -174,15 +175,17 @@ plot(ca(stackalguna), main="Plano principal: tabla concatenada")
 En el eje principal se nota como las variables E se encuentran ordenadas , lo quiere decir que la mayoria de la variablidad en el eje 1 queda explicada por la edad. En el eje 2 , quedan arriba los s y abajo los n , lo que significa que hay una division clara entre tener problemas odontológicos y no tenerlos. Las personas que no tienen educación formal se encuentran en el cuadrante superior, lo que da a entder que estas personas tienden a tener problemas odontológicos. Otro punto importante a destacar es que la prevalencia de pip y prevalencia de bolsa se encuentran sobretodo en la gente con menor edad. Por otro lado la gente con mayor edad tiende a tener perdida de dientes.
 
 ```{r}
+#| label: fig-plot3
+#| fig-cap: " ACS con tabla concatenada"
 plot(ca(stacktodo))
 
 ```
 
 Lo primero que se puede notar de igual forma que en el analisis anterior es que la edad es la variable que mas explica la variabilidad en el eje 1. En el eje 2 se puede notar que las personas con problemas odontológicos tienden a tener problemas de salud general. Por otro lado las personas con problemas de salud general tienden a tener problemas de salud general. En el cuadrante superior izquierdo se encuentran las personas con problemas de salud general y problemas odontológicos. En el cuadrante inferior derecho se encuentran las personas que no tienen problemas de salud general ni problemas odontológicos. En el cuadrante superior derecho se encuentran las personas con problemas de salud general pero sin problemas odontológicos. En el cuadrante inferior izquierdo se encuentran las personas con problemas odontológicos pero sin problemas de salud general.
 
-# Análisis de Correspondencias Múltiples
+\newpage
 
-```{r}
+# Análisis de Correspondencias Múltiples
 
 ```{r}
 #| output: false
@@ -190,6 +193,8 @@ mca811 = MCA(datos %>% select(8:11) %>% mutate(across(where(is.numeric), ~ as.fa
 ```
 
 ```{r}
+#| label: fig-plot4
+#| fig-cap: "Análisis de corresponedia múltiple de de V8 a V11"
 fviz_mca_var(mca811, repel = TRUE , col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 ```
 
@@ -202,12 +207,18 @@ Por otro lado, el segundo eje, que captura el 23.63% de la variación, muestra u
 mca47 = MCA(datos%>% select(4:7)%>% mutate(across(where(is.numeric), ~ as.factor(.))))
 ```
 
+\newpage
+
 ```{r}
+#| label: fig-plot5
+#| fig-cap: "Análisis de corresponedia múltiple de de V4 a V7"
 fviz_mca_var(mca47, repel = TRUE , col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 
 ```
 
-El primer eje vendria a reprsentar las condiciones relacionadas al sobre peso y obesidad ya que se observan que la razon cintrua cadera se encuentra muy cerca de la v ariable de sobrepeso y obesidad. El segundo eje no se tiene tan claro la agrupacion de las variables ya que se encuentran muy dispersas. Tambien se observa una diferencia respecto a la variable de sobrepeso y obesidad en el segundo eje. Quizas podria representar la salud en general de las personas.
+El primer eje vendria a reprsentar las condiciones relacionadas al sobre peso y obesidad ya que se observan que la razon cintrua cadera se encuentra muy cerca de la variable de sobrepeso y obesidad. El segundo eje no se tiene tan claro la agrupacion de las variables ya que se encuentran muy dispersas. Tambien se observa una diferencia respecto a la variable de sobrepeso y obesidad en el segundo eje. Quizas podria representar la salud en general de las personas.
+
+\newpage
 
 ```{r}
 #| output: false
@@ -220,23 +231,20 @@ pca_results = PCA(datos %>% select(edad, , S, C, P, O))
 ```
 
 ```{r}
+#| label: fig-plot6
+#| fig-cap: "PCA de la edad con variables odontológicas"
 fviz_pca_var(pca_results, col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 ```
 
-No hay nada muy revelador en el PCA, quizas lo que mas llame la atencion como se openen la cantidad de dientes operados a la cantidad de dientes con caries.
-
-Tablas de burt
+No hay nada muy revelador en el PCA, quizas lo que mas llame la atencion como se openen la cantidad de dientes operados a la cantidad de dientes con caries. Se toma a las variables S,C,P,O como numéricas para ver como se relacionan con la edad. No es necesario tomar CPO ya que es una combinación lineal de las otras, no agrega información al PCA.
 
 ```{r}
 dummy_matrix <- model.matrix(~ . + 0, data = datos2 %>% select(8:11))
 burt_table <- t(dummy_matrix) %*% dummy_matrix
 ```
 
-```{r}
-fviz_mca_var(mca47, repel = TRUE , col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
-```
-
 # Notas
+
 Se analizan las variables 8 a 11 con la edad
 
 ```{r}
@@ -260,7 +268,14 @@ fviz_ca_biplot(catab_edad, repel = TRUE,  col.row = "cos2",
 
 Se observa que la variable que mejor representada está en el eje 1 es la edad, encontrándose hacia la izquierda del gráfico las personas de mayor edad. La mayoría de las categorías de las variables odontológicas que se encuentran bien representadas en este plano principal. Se observa que los jóvenes de menor edad presentan perdida dentaria y los de mayor edad tienden a presentar mayormente prevalencia de PIP. Es interesantes que este mismo rango etáreo es el que más cercano está a no tener ningún problema de tipo odontológico.
 
-# Referencias
-<div id="refs"></div>
+# Conclusiones
 
+1.  Relación entre nivel educativo y salud bucal: El Análisis de Correspondencias Múltiples muestra una asociación entre individuos con niveles educativos básicos (primaria incompleta y completa) y la prevalencia de condiciones odontológicas específicas, PIP y caries. Este vínculo sugiere que menores niveles de educación pueden estar relacionados con una mayor incidencia de ciertos problemas dentales, mientras que la pérdida dentaria aparece asociada de manera más general a niveles educativos no terciarios.
 
+2.  Influencia de la edad en la salud bucal: Los resultados indican que la edad es un determinante de la variabilidad en las condiciones odontológicas y de salud general. Las personas más jóvenes tienden a sufrir de condiciones como la prevalencia de bolsa y PIP, mientras que la pérdida dentaria es más frecuente en individuos de mayor edad.
+
+3.  Diferenciación de problemas odontológicos y de salud general: El análisis revela una división clara entre tener problemas odontológicos y no tenerlos, así como entre problemas de salud general y odontológicos.
+
+4.  Patrones de enfermedades dentales y su relación con otras condiciones de salud: Los ejes identificados en el Análisis de Correspondencias Múltiples proporcionan una visión clara sobre cómo distintas condiciones odontológicas, como bolsas periodontales y caries, presentan patrones de variabilidad que difieren significativamente entre sí. Esto resalta la necesidad de abordajes diferenciados en las estrategias de salud dental, considerando los factores de riesgo únicos que cada condición presenta.
+
+    En conclusión, estos hallazgos subrayan la importancia de considerar una variedad de factores, incluyendo el nivel educativo, la edad, y las condiciones de salud general, al evaluar la salud bucal.

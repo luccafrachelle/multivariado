@@ -3,24 +3,41 @@ title: "Entrega 1 Analisis Multivariado I"
 author: "Lucca Frachelle , Joaquín Silva , Cecilia Waksman"
 format: pdf
 editor: visual
+echo: false
+warning: false
+biblography: bibliografia.bib
+nocite: |
+  @*
 ---
 
-# Resumen Ejecutivo:
+# Resumen Ejecutivo
 
-Los datos utilizados en este análisis surgen de un  estudio epidemiológico llevado a cabo en la Facultad de Odontología de la Universidad de la República, Uruguay, durante el período 2015-2016. Los mismos son recogidos de 602 individuos que acudieron a consulta. Este análisis se centra mayormente en el uso de variables binarias para identificar la presencia de enfermedades no transmisibles (ENT) y otros factores de riesgo asociados con la salud bucal, tratados aquí como comorbilidades. Los atributos estudiados se agrupan en tres bloques principales: comportamentales, ENT generales, y patologías odontológicas específicas, además se cuenta con variables demográficas diversas (edad, ingreso, sexo, nivel educativo). Entre los comportamentales se incluyen el consumo diario de tabaco, el consumo nocivo de alcohol y la insuficiencia de actividad física. Los ENT se refieren a condiciones como sobrepeso/obesidad, razón de cintura-cadera, hipertensión y diabetes. Finalmente, las condiciones odontológicas incluyen la prevalencia de bolsas periodontales, pérdida dentaria, caries y prevalencia de patología periapical infecciosa (PIP).
+Los datos utilizados en este análisis surgen de un estudio epidemiológico llevado a cabo en la Facultad de Odontología de la Universidad de la República, Uruguay, durante el período 2015-2016. Los mismos son recogidos de 602 individuos que acudieron a consulta. Este análisis se centra mayormente en el uso de variables binarias para identificar la presencia de enfermedades no transmisibles (ENT) y otros factores de riesgo asociados con la salud bucal, tratados aquí como comorbilidades. Los atributos estudiados se agrupan en tres bloques principales: comportamentales, ENT generales, y patologías odontológicas específicas, además se cuenta con variables demográficas diversas (edad, ingreso, sexo, nivel educativo). Entre los comportamentales se incluyen el consumo diario de tabaco, el consumo nocivo de alcohol y la insuficiencia de actividad física. Los ENT se refieren a condiciones como sobrepeso/obesidad, razón de cintura-cadera, hipertensión y diabetes. Finalmente, las condiciones odontológicas incluyen la prevalencia de bolsas periodontales, pérdida dentaria, caries y prevalencia de patología periapical infecciosa (PIP).
 
 El estudio empleó técnicas de muestreo sistemático para seleccionar una muestra representativa, ajustada para medir prevalencias de hasta un 25% con un margen de error de 0.05 y un nivel de confianza del 95%. Se aplicaron cuestionarios sociodemográficos y exámenes bucodentales completos, evaluando la salud dental y de la mucosa, además de medidas antropométricas y análisis de presión arterial y glucemia.
 
-# Introducción :
+# Introducción
 
-En el presente trabajo, aprovechamos un conjunto de datos derivados de individuos que solicitaron atención en la Facultad de Odontología de la Universidad de la República, Uruguay, entre 2015 y 2016, para realizar un estudio exploratorio que indaga cómo los factores de riesgo comportamentales y las enfermedades no transmisibles (ENT) influyen en las patologías odontológicas. A través del uso de  del Análisis de Componentes (CA) y Análisis de Correspondencias Múltiples (MCA), buscamos comprender las interacciones y posibles correlaciones entre estos distintos aspectos de la salud.
+En el presente trabajo, aprovechamos un conjunto de datos derivados de individuos que solicitaron atención en la Facultad de Odontología de la Universidad de la República, Uruguay, entre 2015 y 2016, para realizar un estudio exploratorio que indaga cómo los factores de riesgo comportamentales y las enfermedades no transmisibles (ENT) influyen en las patologías odontológicas. A través del uso de del Análisis de Componentes (CA) y Análisis de Correspondencias Múltiples (MCA), buscamos comprender las interacciones y posibles correlaciones entre estos distintos aspectos de la salud.
 
 Este trabajo se centra en analizar las asociaciones entre variables, con el fin de identificar patrones que sugieran cómo los hábitos de vida y las condiciones de salud impactan en la salud bucal.
 
 Así, nuestro análisis no solo ayuda a esclarecer la estructura de los datos y la relación entre diversas condiciones de salud, sino que también facilita el entendimiento de los factores de riesgo que afectan en la salud bucal.
 
+# Marco metodológico
+Para desarrollar un marco metodológico que explique el análisis de correspondencia simple con múltiples entradas y tablas concatenadas, así como el análisis de correspondencias múltiples (MCA por sus siglas en inglés), puedes seguir la siguiente estructura:
 
-## Carga de librerías
+1. Introducción al Análisis de Correspondencia Simple (CA)
+El Análisis de Correspondencia Simple es una técnica de análisis multivariante utilizada para explorar y visualizar las relaciones entre dos variables categóricas. Esta técnica proporciona una representación gráfica de las categorías de las variables en un espacio de baja dimensión, generalmente bidimensional, de modo que las distancias entre puntos en este espacio reflejan las diferencias en el perfil de las categorías.
+
+2. Extensión a Múltiples Entradas y Tablas Concatenadas
+Cuando se tiene más de una tabla de contingencia o datos de diferentes fuentes que deben ser analizados conjuntamente, es posible concatenar estas tablas para formar una única tabla de datos antes de realizar el análisis. Esta concatenación permite realizar un CA sobre el conjunto de datos integrado, proporcionando una visión global de las relaciones entre categorías en todas las tablas. Esto es especialmente útil para comparar grupos o categorías que se miden a través de múltiples variables o en diferentes momentos en el tiempo.
+
+3. Análisis de Correspondencias Múltiples (MCA)
+El Análisis de Correspondencias Múltiples es una generalización del análisis de correspondencia simple aplicable a tablas de datos que contienen más de dos variables categóricas. El objetivo del MCA es analizar la estructura de las relaciones entre varias categorías de múltiples variables categóricas y visualizar estas relaciones en un espacio multidimensional.
+
+El MCA trata cada modalidad de las variables categóricas como una categoría independiente y las representa en un espacio factorial, donde la proximidad entre categorías indica una asociación o similitud en los perfiles de los individuos que seleccionaron estas categorías.
+
 
 ```{r}
 #| output: false
@@ -33,7 +50,7 @@ library(ca)
 library(knitr)
 ```
 
-## Carga de datos
+# Carga de datos y limpieza
 
 ```{r}
 load('./data/bfm.RData')
@@ -45,9 +62,10 @@ Se cargan 3 dataframes : datos , DATOS y dato01.601
 datos = datos %>% select(-c(17:22 , 28)) %>% filter(!if_any(c(1:23), is.na))
 ```
 
-## Limpieza de datos
+Se borran los individuos que tienen edad mayor a 34 años y que pertenecen al grupo de 18-34 años
 
 ```{r}
+#| output: false
 datos %>% group_by(edadrec2) %>% select(edad) %>% summarise(rango = range(edad)) %>% kable()
 
 
@@ -57,23 +75,29 @@ datos %>% group_by(edadrec2) %>% select(edad) %>% summarise(rango = range(edad))
 datos = datos %>% filter(! (edadrec2 == 1 & edad > 34))
 ```
 
-Se borran los individuos que tienen edad mayor a 34 años y que pertenecen al grupo de 18-34 años
-
 ```{r}
 datos2 <- datos %>% mutate(across(where(is.factor), ~ as.integer(.)))
 datos2 = datos2 %>% select(-c(ingresos , edad,niveledu.rec))
 datos2 = datos2 %>% rename(ingresos = ingresos.rec , edad = edadrec2)
 ```
 
-\newpage
-
 ```{r}
 #| warning: false
+#| output: false
 datos %>% group_by(edadrec2) %>% select(edad) %>% summarise(rango = range(edad)) %>% kable()
 
 ```
 
-## ACS
+```{r , results='asis'}
+a = c("E1" , "E2" , "E3" , "E4" , "E5")
+b = c('18-34' , '35-44' , '45-54' , '55-64' , '65-85')
+c = as.data.frame(cbind(a,b))
+names(c) = c("Grupo" , "Rango etario")
+kable(c)
+```
+
+# Análisis de corespondencia simple
+## Multiples entradas
 
 ```{r}
 datos2$V8_9 <- 2*(datos2$V8-1)+datos2$V9
@@ -82,9 +106,8 @@ datos2$V8_11 <- 2*(datos2$V8_10-1)+datos2$V11
 tab_ing <- table(datos2$V8_11,  datos2$ingresos)
 ```
 
-
 ```{r}
-#|output: FALSE
+#| output: false
 
 #V8_11 y educación
 tab_educ <- table(datos2$V8_11,  datos2$niveledu)
@@ -104,16 +127,10 @@ fviz_ca_biplot(catab_educ_, repel = TRUE,  col.row = "cos2",
                gradient.cols = c("#00AFBB", "#E7B800"), title = "Plano principal de las variables nivel educativo y V8 a V11")
 ```
 
+Este gráfico representa el plano principal generado por las variables nivel educativo y V8 a 11. En esta parte del análisis las categorías de nivel educacional: "Sin escolarización formal" (SEF) y "Estudios de posgrado" (EP), únicamente intervienen como categorías suplementarias. Aquellos individuos con un nivel de estudio PI o PC (primaria incompleta y completa, respectivamente), suelen asociarse con la prevalenca de PIP y de caries. Por otro lado, el resto de categorías que no alcanzan estudios terciarios se encuentran más asociadas a la categoría de pérdida dentaria.
 
-Este gráfico representa  el plano principal generado por las variables nivel educativo y V8 a 11. En esta parte del análisis las categorías de nivel educacional: "Sin escolarización formal" (SEF) y "Estudios de posgrado" (EP), únicamente intervienen como categorías suplementarias.
-Aquellos individuos con un nivel de estudio PI o PC (primaria incompleta y completa, respectivamente), suelen asociarse con la prevalenca de PIP y de caries. Por otro lado, el resto de categorías que no alcanzan estudios terciarios se encuentran más asociadas a la categoría de pérdida dentaria.
+## Tablas concatenadas
 
-
-
-
-## ACS tablas concatenadas
-
-### Funciones para hacer las tablas
 
 ```{r}
 for(j in c(12,13,14,20)){
@@ -163,7 +180,9 @@ plot(ca(stacktodo))
 
 Lo primero que se puede notar de igual forma que en el analisis anterior es que la edad es la variable que mas explica la variabilidad en el eje 1. En el eje 2 se puede notar que las personas con problemas odontológicos tienden a tener problemas de salud general. Por otro lado las personas con problemas de salud general tienden a tener problemas de salud general. En el cuadrante superior izquierdo se encuentran las personas con problemas de salud general y problemas odontológicos. En el cuadrante inferior derecho se encuentran las personas que no tienen problemas de salud general ni problemas odontológicos. En el cuadrante superior derecho se encuentran las personas con problemas de salud general pero sin problemas odontológicos. En el cuadrante inferior izquierdo se encuentran las personas con problemas odontológicos pero sin problemas de salud general.
 
-## MCA
+# Análisis de Correspondencias Múltiples
+
+```{r}
 
 ```{r}
 #| output: false
@@ -217,7 +236,7 @@ burt_table <- t(dummy_matrix) %*% dummy_matrix
 fviz_mca_var(mca47, repel = TRUE , col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 ```
 
-Notas:
+# Notas
 Se analizan las variables 8 a 11 con la edad
 
 ```{r}
@@ -239,6 +258,9 @@ fviz_ca_biplot(catab_edad, repel = TRUE,  col.row = "cos2",
 #"#00AFBB", "#E7B800", "#FC4E07"
 ```
 
-Se observa que la variable que mejor representada está en el eje 1 es la edad, encontrándose hacia la izquierda del gráfico las personas de mayor edad. 
-La mayoría de las categorías de las variables odontológicas que se encuentran bien representadas en este plano principal. Se observa que los jóvenes de menor edad presentan perdida dentaria y los de mayor edad tienden a presentar mayormente prevalencia de PIP. Es interesantes que este mismo rango etáreo es el que más cercano está a no tener ningún problema de tipo odontológico.
+Se observa que la variable que mejor representada está en el eje 1 es la edad, encontrándose hacia la izquierda del gráfico las personas de mayor edad. La mayoría de las categorías de las variables odontológicas que se encuentran bien representadas en este plano principal. Se observa que los jóvenes de menor edad presentan perdida dentaria y los de mayor edad tienden a presentar mayormente prevalencia de PIP. Es interesantes que este mismo rango etáreo es el que más cercano está a no tener ningún problema de tipo odontológico.
+
+# Referencias
+<div id="refs"></div>
+
 

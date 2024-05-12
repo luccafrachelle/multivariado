@@ -1,10 +1,13 @@
 ---
-title: "Entrega 1 Analisis Multivariado I"
+title: "Entrega 1 - Analisis Multivariado I"
 author: "Lucca Frachelle , Joaquín Silva , Cecilia Waksman"
 format: pdf
 editor: visual
 echo: false
 warning: false
+bibliography: bibliografia.bib
+notice: |
+  @*
 ---
 
 # Resumen Ejecutivo
@@ -12,6 +15,7 @@ warning: false
 Los datos utilizados en este análisis surgen de un estudio epidemiológico llevado a cabo en la Facultad de Odontología de la Universidad de la República, Uruguay, durante el período 2015-2016. Los mismos son recogidos de 602 individuos que acudieron a consulta. Este análisis se centra mayormente en el uso de variables binarias para identificar la presencia de enfermedades no transmisibles (ENT) y otros factores de riesgo asociados con la salud bucal, tratados aquí como comorbilidades. Los atributos estudiados se agrupan en tres bloques principales: comportamentales, ENT generales, y patologías odontológicas específicas, además se cuenta con variables demográficas diversas (edad, ingreso, sexo, nivel educativo). Entre los comportamentales se incluyen el consumo diario de tabaco, el consumo nocivo de alcohol y la insuficiencia de actividad física. Los ENT se refieren a condiciones como sobrepeso/obesidad, razón de cintura-cadera, hipertensión y diabetes. Finalmente, las condiciones odontológicas incluyen la prevalencia de bolsas periodontales, pérdida dentaria, caries y prevalencia de patología periapical infecciosa (PIP).
 
 El estudio empleó técnicas de muestreo sistemático para seleccionar una muestra representativa, ajustada para medir prevalencias de hasta un 25% con un margen de error de 0.05 y un nivel de confianza del 95%. Se aplicaron cuestionarios sociodemográficos y exámenes bucodentales completos, evaluando la salud dental y de la mucosa, además de medidas antropométricas y análisis de presión arterial y glucemia.
+
 
 # Introducción
 
@@ -43,6 +47,8 @@ library(vcd)
 library(ca)
 library(knitr)
 ```
+
+\newpage
 
 # Carga de datos y limpieza
 
@@ -128,9 +134,15 @@ fviz_ca_biplot(catab_educ_, repel = TRUE,  col.row = "cos2",
                gradient.cols = c("#00AFBB", "#E7B800"), title = "Plano principal de las variables nivel educativo y V8 a V11")
 ```
 
+
 Este gráfico representa el plano principal generado por las variables nivel educativo y V8 a 11. En esta parte del análisis las categorías de nivel educacional: "Sin escolarización formal" (SEF) y "Estudios de posgrado" (EP), únicamente intervienen como categorías suplementarias para un mejor análisis del mismo. Aquellos individuos con un nivel de estudio PI o PC (primaria incompleta y completa, respectivamente), suelen asociarse con la prevalenca de PIP y de caries. Por otro lado, el resto de categorías que no alcanzan estudios terciarios (CBI, CBC, BI y BC) se encuentran más asociadas a la categoría de pérdida dentaria.
 
-```{r, fig.cap= Método: residuos de Pearson. Variables V8 a 11 y nivel educacional.}
+\newpage
+
+```{r, fig.width=15, fig.height=8}
+
+#| label: fig-plot2
+#| fig-cap: " Método: residuos de Pearson. Variables V8 a 11 y nivel educacional."
 assoc(tab_educ, shade=T, main = "Gráfico de asociación")
 ```
 
@@ -173,7 +185,7 @@ rownames(stacktodo)<-c("F","M","BC","BI","CB","CBI","EP","ET","EU",
 ```
 
 ```{r}
-#| label: fig-plot2
+#| label: fig-plot3
 #| fig-cap: "ACS con tabla concatenada"
 plot(ca(stackalguna), main="Plano principal: tabla concatenada")
 
@@ -182,7 +194,7 @@ plot(ca(stackalguna), main="Plano principal: tabla concatenada")
 En el eje principal se nota como las variables E se encuentran ordenadas , lo quiere decir que la mayoria de la variablidad en el eje 1 queda explicada por la edad. En el eje 2 , quedan arriba los s y abajo los n , lo que significa que hay una division clara entre tener problemas odontológicos y no tenerlos. Las personas que no tienen educación formal se encuentran en el cuadrante superior, lo que da a entder que estas personas tienden a tener problemas odontológicos. Otro punto importante a destacar es que la prevalencia de pip y prevalencia de bolsa se encuentran sobretodo en la gente con menor edad. Por otro lado la gente con mayor edad tiende a tener perdida de dientes.
 
 ```{r}
-#| label: fig-plot3
+#| label: fig-plot4
 #| fig-cap: " ACS con tabla concatenada"
 plot(ca(stacktodo))
 
@@ -200,7 +212,7 @@ mca811 = MCA(datos %>% select(8:11) %>% mutate(across(where(is.numeric), ~ as.fa
 ```
 
 ```{r}
-#| label: fig-plot4
+#| label: fig-plot5
 #| fig-cap: "Análisis de corresponedia múltiple de de V8 a V11"
 fviz_mca_var(mca811, repel = TRUE , col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 ```
@@ -217,13 +229,13 @@ mca47 = MCA(datos%>% select(4:7)%>% mutate(across(where(is.numeric), ~ as.factor
 \newpage
 
 ```{r}
-#| label: fig-plot5
+#| label: fig-plot6
 #| fig-cap: "Análisis de corresponedia múltiple de de V4 a V7"
 fviz_mca_var(mca47, repel = TRUE , col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 
 ```
 
-El primer eje vendria a reprsentar las condiciones relacionadas al sobre peso y obesidad ya que se observan que la razon cintrua cadera se encuentra muy cerca de la variable de sobrepeso y obesidad. El segundo eje no se tiene tan claro la agrupacion de las variables ya que se encuentran muy dispersas. Tambien se observa una diferencia respecto a la variable de sobrepeso y obesidad en el segundo eje. Quizas podria representar la salud en general de las personas.
+El primer eje representa las condiciones relacionadas al sobrepeso y obesidad ya que se observan que la razon cintrua cadera se encuentra muy cerca de la variable de sobrepeso y obesidad. El segundo eje no es tan clara la agrupacion de las variable ya que se encuentran muy dispersas. También se observa una diferencia respecto a la variable de sobrepeso y obesidad en el segundo eje. Quizas podria representar la salud en general de las personas.
 
 \newpage
 
@@ -238,29 +250,18 @@ pca_results = PCA(datos %>% select(edad, , S, C, P, O))
 ```
 
 ```{r}
-#| label: fig-plot6
+#| label: fig-plot7
 #| fig-cap: "PCA de la edad con variables odontológicas"
 fviz_pca_var(pca_results, col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 ```
 
-No hay nada muy revelador en el PCA, quizas lo que mas llame la atencion como se openen la cantidad de dientes operados a la cantidad de dientes con caries. Se toma a las variables S,C,P,O como numéricas para ver como se relacionan con la edad. No es necesario tomar CPO ya que es una combinación lineal de las otras, no agrega información al PCA.
+No hay nada muy revelador en el PCA, quizas lo que más llame la atención sea como se openen la cantidad de dientes operados a la cantidad de dientes con caries. Se toma a las variables S,C,P,O como numéricas para ver como se relacionan con la edad. No es necesario tomar CPO ya que es una combinación lineal de las otras y no agrega información al PCA.
 
 ```{r}
 dummy_matrix <- model.matrix(~ . + 0, data = datos2 %>% select(8:11))
 burt_table <- t(dummy_matrix) %*% dummy_matrix
 ```
 
-<<<<<<< HEAD
-```{r}
-fviz_mca_var(mca47, repel = TRUE , col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
-```
-
-
-=======
-# Notas
-
-Se analizan las variables 8 a 11 con la edad
->>>>>>> def944ddc80b2d957cb5b9c7d4d4d7096b991ed4
 
 ```{r}
 #Notas

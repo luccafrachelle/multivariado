@@ -16,7 +16,6 @@ Los datos utilizados en este análisis surgen de un estudio epidemiológico llev
 
 El estudio empleó técnicas de muestreo sistemático para seleccionar una muestra representativa, ajustada para medir prevalencias de hasta un 25% con un margen de error de 0.05 y un nivel de confianza del 95%. Se aplicaron cuestionarios sociodemográficos y exámenes bucodentales completos, evaluando la salud dental y de la mucosa, además de medidas antropométricas y análisis de presión arterial y glucemia.
 
-
 # Introducción
 
 En el presente trabajo, aprovechamos un conjunto de datos derivados de individuos que solicitaron atención en la Facultad de Odontología de la Universidad de la República, Uruguay, entre 2015 y 2016, para realizar un estudio exploratorio que indaga cómo los factores de riesgo comportamentales y las enfermedades no transmisibles (ENT) influyen en las patologías odontológicas. A través del uso de del Análisis de Componentes (CA) y Análisis de Correspondencias Múltiples (MCA), buscamos comprender las interacciones y posibles correlaciones entre estos distintos aspectos de la salud.
@@ -99,6 +98,8 @@ kable(c)
 
 ```
 
+\newpage
+
 # Análisis de corespondencia simple
 
 ## Multiples entradas
@@ -124,7 +125,6 @@ catab_educ_ <- CA(tab_educ, col.sup = c(5, 10))
 # eig.val_educ
 ```
 
-
 ```{r}
 #| label: fig-plot1
 #| fig-cap: "ACS con mutliples entradas , V8 a V11 y edad"
@@ -134,10 +134,7 @@ fviz_ca_biplot(catab_educ_, repel = TRUE,  col.row = "cos2",
                gradient.cols = c("#00AFBB", "#E7B800"), title = "Plano principal de las variables nivel educativo y V8 a V11")
 ```
 
-
 Este gráfico representa el plano principal generado por las variables nivel educativo y V8 a 11. En esta parte del análisis las categorías de nivel educacional: "Sin escolarización formal" (SEF) y "Estudios de posgrado" (EP), únicamente intervienen como categorías suplementarias para un mejor análisis del mismo. Aquellos individuos con un nivel de estudio PI o PC (primaria incompleta y completa, respectivamente), suelen asociarse con la prevalenca de PIP y de caries. Por otro lado, el resto de categorías que no alcanzan estudios terciarios (CBI, CBC, BI y BC) se encuentran más asociadas a la categoría de pérdida dentaria.
-
-\newpage
 
 ```{r, fig.width=15, fig.height=8}
 
@@ -146,7 +143,9 @@ Este gráfico representa el plano principal generado por las variables nivel edu
 assoc(tab_educ, shade=T, main = "Gráfico de asociación")
 ```
 
-La mayoría de categorías que presentan pérdida dentaria como uno de los problemas odontológicos presentes se encuentran asociadas positivamente con la categoría de nivel educacional, bachillerato completo (BC) y estudios de posgrado (EP). La pérdida dentaria también se asocia positivamente con educación terciaria universitaria (EU) y negativamente con primaria completa (PC).  Por último, la prevalencia de PIP está fuertemente asociada con la categoría "sin escolarización formal" en forma positiva.
+La mayoría de categorías que presentan pérdida dentaria como uno de los problemas odontológicos presentes se encuentran asociadas positivamente con la categoría de nivel educacional, bachillerato completo (BC) y estudios de posgrado (EP). La pérdida dentaria también se asocia positivamente con educación terciaria universitaria (EU) y negativamente con primaria completa (PC). Por último, la prevalencia de PIP está fuertemente asociada con la categoría "sin escolarización formal" en forma positiva.
+
+\newpage
 
 ## Tablas concatenadas
 
@@ -192,6 +191,7 @@ plot(ca(stackalguna), main="Plano principal: tabla concatenada")
 ```
 
 En el eje principal se nota como las variables E se encuentran ordenadas , lo quiere decir que la mayoria de la variablidad en el eje 1 queda explicada por la edad. En el eje 2 , quedan arriba los s y abajo los n , lo que significa que hay una division clara entre tener problemas odontológicos y no tenerlos. Las personas que no tienen educación formal se encuentran en el cuadrante superior, lo que da a entder que estas personas tienden a tener problemas odontológicos. Otro punto importante a destacar es que la prevalencia de pip y prevalencia de bolsa se encuentran sobretodo en la gente con menor edad. Por otro lado la gente con mayor edad tiende a tener perdida de dientes.
+\newpage
 
 ```{r}
 #| label: fig-plot4
@@ -202,14 +202,16 @@ plot(ca(stacktodo))
 
 Lo primero que se puede notar de igual forma que en el analisis anterior es que la edad es la variable que mas explica la variabilidad en el eje 1. En el eje 2 se puede notar que las personas con problemas odontológicos tienden a tener problemas de salud general. Por otro lado las personas con problemas de salud general tienden a tener problemas de salud general. En el cuadrante superior izquierdo se encuentran las personas con problemas de salud general y problemas odontológicos. En el cuadrante inferior derecho se encuentran las personas que no tienen problemas de salud general ni problemas odontológicos. En el cuadrante superior derecho se encuentran las personas con problemas de salud general pero sin problemas odontológicos. En el cuadrante inferior izquierdo se encuentran las personas con problemas odontológicos pero sin problemas de salud general.
 
-\newpage
-
-# Análisis de Correspondencias Múltiples
-
 ```{r}
 #| output: false
 mca811 = MCA(datos %>% select(8:11) %>% mutate(across(where(is.numeric), ~ as.factor(.))))
 ```
+‎ ‎ 
+
+\pagebreak
+
+
+# Análisis de Correspondencias Múltiples
 
 ```{r}
 #| label: fig-plot5
@@ -217,9 +219,9 @@ mca811 = MCA(datos %>% select(8:11) %>% mutate(across(where(is.numeric), ~ as.fa
 fviz_mca_var(mca811, repel = TRUE , col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 ```
 
-En el Análisis de Correspondencias Múltiples realizado, los ejes identificados ofrecen una visión clara sobre las diferencias significativas entre las variables estudiadas, cada una relacionada con aspectos específicos de la salud dental. El primer eje, que explica un 40.23% de la variabilidad, destaca por su capacidad para diferenciar entre las respuestas asociadas con la variable V8 (Prev. bolsa 3 Odontológicas) y V11 (Prevalencia de PIP). Esta distinción podría indicar que la presencia o ausencia de condiciones más graves o específicas, como las bolsas periodontales y las condiciones designadas por "PIP", son factores distintivos críticos.
+En el Análisis de Correspondencias Múltiples realizado, los ejes identificados ofrecen una visión clara sobre las diferencias significativas entre las variables estudiadas, cada una relacionada con aspectos específicos de la salud dental. El primer eje, que explica un 40.1% de la variabilidad, destaca por su capacidad para diferenciar entre las respuestas asociadas con la variable V8 (Prev. bolsa 3 Odontológicas) y V11 (Prevalencia de PIP). Esta distinción podría indicar que la presencia o ausencia de condiciones más graves o específicas, como las bolsas periodontales y las condiciones designadas por "PIP", son factores distintivos críticos.
 
-Por otro lado, el segundo eje, que captura el 23.63% de la variación, muestra una separación clara con respecto a la variable V10 (Prevalencia de Caries). Esto indica que las caries dentales exhiben un patrón de variabilidad que es distintivamente diferente en comparación con otras condiciones dentales evaluadas. La prevalencia de caries puede estar influenciada por factores de riesgo únicos que no son tan prominentes en otras condiciones periodontales o dentales evaluadas, resaltando la necesidad de abordajes diferenciados en las estrategias de salud dental.
+Por otro lado, el segundo eje, que captura el 26.4% de la variación, muestra una separación clara con respecto a la variable V10 (Prevalencia de Caries). Esto indica que las caries dentales exhiben un patrón de variabilidad que es distintivamente diferente en comparación con otras condiciones dentales evaluadas. La prevalencia de caries puede estar influenciada por factores de riesgo únicos que no son tan prominentes en otras condiciones periodontales o dentales evaluadas, resaltando la necesidad de abordajes diferenciados en las estrategias de salud dental.
 
 ```{r}
 #| output: false
@@ -262,7 +264,6 @@ dummy_matrix <- model.matrix(~ . + 0, data = datos2 %>% select(8:11))
 burt_table <- t(dummy_matrix) %*% dummy_matrix
 ```
 
-
 ```{r}
 #Notas
 #Se analizan las variables 8 a 11 con la edad
@@ -286,9 +287,7 @@ burt_table <- t(dummy_matrix) %*% dummy_matrix
 
 # Se observa que la variable que mejor representada está en el eje 1 es la edad, encontrándose hacia la izquierda del gráfico las personas de mayor edad. La mayoría de las categorías de las variables odontológicas que se encuentran bien representadas en este plano principal. Se observa que los jóvenes de menor edad presentan perdida dentaria y los de mayor edad tienden a presentar mayormente prevalencia de PIP. Es interesantes que este mismo rango etáreo es el que más cercano está a no tener ningún problema de tipo odontológico.
 ```
-
-
-
+\newpage
 # Conclusiones
 
 1.  Relación entre nivel educativo y salud bucal: El Análisis de Correspondencias Múltiples muestra una asociación entre individuos con niveles educativos básicos (primaria incompleta y completa) y la prevalencia de condiciones odontológicas específicas, PIP y caries. Este vínculo sugiere que menores niveles de educación pueden estar relacionados con una mayor incidencia de ciertos problemas dentales, mientras que la pérdida dentaria aparece asociada de manera más general a niveles educativos no terciarios.

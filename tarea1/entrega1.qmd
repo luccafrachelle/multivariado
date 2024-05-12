@@ -56,13 +56,13 @@ library(knitr)
 load('./data/bfm.RData')
 ```
 
-Se cargan 3 dataframes : datos , DATOS y dato01.601
+Originalmente se cargan 4 dataframes : D, datos , DATOS y dato01.601, de los cuales solo utilizaremos datos.
 
 ```{r}
 datos = datos %>% select(-c(17:22 , 28)) %>% filter(!if_any(c(1:23), is.na))
 ```
 
-Se borran los individuos que tienen edad mayor a 34 años y que pertenecen al grupo de 18-34 años
+Existen observaciones las cuales cuentan con NAs en algunas variables, o que presentan diferencias entre sus valores en las variables edad y rango etario (pertenecen al rango 18-34, pero la edad registrada es mayor que 34); estas se filtrarán para continuar con el análisis. Los rangos serán entonces los siguientes:
 
 ```{r}
 #| output: false
@@ -120,6 +120,7 @@ catab_educ_ <- CA(tab_educ, col.sup = c(5, 10))
 # eig.val_educ
 ```
 
+
 ```{r}
 #fviz_eig(catab_educ_)
 
@@ -127,7 +128,13 @@ fviz_ca_biplot(catab_educ_, repel = TRUE,  col.row = "cos2",
                gradient.cols = c("#00AFBB", "#E7B800"), title = "Plano principal de las variables nivel educativo y V8 a V11")
 ```
 
-Este gráfico representa el plano principal generado por las variables nivel educativo y V8 a 11. En esta parte del análisis las categorías de nivel educacional: "Sin escolarización formal" (SEF) y "Estudios de posgrado" (EP), únicamente intervienen como categorías suplementarias. Aquellos individuos con un nivel de estudio PI o PC (primaria incompleta y completa, respectivamente), suelen asociarse con la prevalenca de PIP y de caries. Por otro lado, el resto de categorías que no alcanzan estudios terciarios se encuentran más asociadas a la categoría de pérdida dentaria.
+Este gráfico representa el plano principal generado por las variables nivel educativo y V8 a 11. En esta parte del análisis las categorías de nivel educacional: "Sin escolarización formal" (SEF) y "Estudios de posgrado" (EP), únicamente intervienen como categorías suplementarias para un mejor análisis del mismo. Aquellos individuos con un nivel de estudio PI o PC (primaria incompleta y completa, respectivamente), suelen asociarse con la prevalenca de PIP y de caries. Por otro lado, el resto de categorías que no alcanzan estudios terciarios (CBI, CBC, BI y BC) se encuentran más asociadas a la categoría de pérdida dentaria.
+
+```{r, fig.cap= Método: residuos de Pearson. Variables V8 a 11 y nivel educacional.}
+assoc(tab_educ, shade=T, main = "Gráfico de asociación")
+```
+
+La mayoría de categorías que presentan pérdida dentaria como uno de los problemas odontológicos presentes se encuentran asociadas positivamente con la categoría de nivel educacional, bachillerato completo (BC) y estudios de posgrado (EP). La pérdida dentaria también se asocia positivamente con educación terciaria universitaria (EU) y negativamente con primaria completa (PC).  Por último, la prevalencia de PIP está fuertemente asociada con la categoría "sin escolarización formal" en forma positiva.
 
 ## Tablas concatenadas
 
@@ -236,29 +243,33 @@ burt_table <- t(dummy_matrix) %*% dummy_matrix
 fviz_mca_var(mca47, repel = TRUE , col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 ```
 
-# Notas
-Se analizan las variables 8 a 11 con la edad
+
 
 ```{r}
-tab_edad <- table(datos2$V8_11,  datos2$edad)
-rownames(tab_edad) <- c("nada", "P", "C", "CP", "D", "DP",
-                        "DC", "DCP", "B", "BP", "BC", "BCP", "BD", "BDP", "BDC", "BDCP")
+#Notas
+#Se analizan las variables 8 a 11 con la edad
 
-catab_edad <- CA(tab_edad)
-
-# Valores propios
-# eig.val_edad <- get_eigenvalue(catab_edad)
-# eig.val_edad
-
-fviz_eig(catab_edad)
-
-fviz_ca_biplot(catab_edad, repel = TRUE,  col.row = "cos2",
-               gradient.cols = c("#00AFBB", "#E7B800"), title = "Plano principal de las variables edad y V8 a V11")
+# tab_edad <- table(datos2$V8_11,  datos2$edad)
+# rownames(tab_edad) <- c("nada", "P", "C", "CP", "D", "DP",
+#                         "DC", "DCP", "B", "BP", "BC", "BCP", "BD", "BDP", "BDC", "BDCP")
+# 
+# catab_edad <- CA(tab_edad)
+# 
+# # Valores propios
+# # eig.val_edad <- get_eigenvalue(catab_edad)
+# # eig.val_edad
+# 
+# fviz_eig(catab_edad)
+# 
+# fviz_ca_biplot(catab_edad, repel = TRUE,  col.row = "cos2",
+#                gradient.cols = c("#00AFBB", "#E7B800"), title = "Plano principal de las variables edad y V8 a V11")
 
 #"#00AFBB", "#E7B800", "#FC4E07"
+
+# Se observa que la variable que mejor representada está en el eje 1 es la edad, encontrándose hacia la izquierda del gráfico las personas de mayor edad. La mayoría de las categorías de las variables odontológicas que se encuentran bien representadas en este plano principal. Se observa que los jóvenes de menor edad presentan perdida dentaria y los de mayor edad tienden a presentar mayormente prevalencia de PIP. Es interesantes que este mismo rango etáreo es el que más cercano está a no tener ningún problema de tipo odontológico.
 ```
 
-Se observa que la variable que mejor representada está en el eje 1 es la edad, encontrándose hacia la izquierda del gráfico las personas de mayor edad. La mayoría de las categorías de las variables odontológicas que se encuentran bien representadas en este plano principal. Se observa que los jóvenes de menor edad presentan perdida dentaria y los de mayor edad tienden a presentar mayormente prevalencia de PIP. Es interesantes que este mismo rango etáreo es el que más cercano está a no tener ningún problema de tipo odontológico.
+
 
 # Referencias
 <div id="refs"></div>

@@ -14,6 +14,10 @@ notice: |
 
 Los datos utilizados en este análisis surgen de un estudio epidemiológico llevado a cabo en la Facultad de Odontología de la Universidad de la República, Uruguay, durante el período 2015-2016. Los mismos son recogidos de 602 individuos que acudieron a consulta. Este análisis se centra mayormente en el uso de variables binarias para identificar la presencia de enfermedades no transmisibles (ENT) y otros factores de riesgo asociados con la salud bucal, tratados aquí como comorbilidades. Los atributos estudiados se agrupan en tres bloques principales: comportamentales, ENT generales, y patologías odontológicas específicas, además se cuenta con variables demográficas diversas (edad, ingreso, sexo, nivel educativo). Entre los comportamentales se incluyen el consumo diario de tabaco, el consumo nocivo de alcohol y la insuficiencia de actividad física. Los ENT se refieren a condiciones como sobrepeso/obesidad, razón de cintura-cadera, hipertensión y diabetes. Finalmente, las condiciones odontológicas incluyen la prevalencia de bolsas periodontales, pérdida dentaria, caries y prevalencia de patología periapical infecciosa (PIP).
 
+!\[Variables\](Variables.png)
+
+Además contamos con las variables C, P, O y CPO, donde C es la cantidad de dientes con caries, P es la cantidad de dientes perdidos debido a caries y O la cantidad de dientes con caries obturadas, además CPO es la suma de las tres anteriores.
+
 El estudio empleó técnicas de muestreo sistemático para seleccionar una muestra representativa, ajustada para medir prevalencias de hasta un 25% con un margen de error de 0.05 y un nivel de confianza del 95%. Se aplicaron cuestionarios sociodemográficos y exámenes bucodentales completos, evaluando la salud dental y de la mucosa, además de medidas antropométricas y análisis de presión arterial y glucemia.
 
 # Introducción
@@ -190,8 +194,7 @@ plot(ca(stackalguna), main="Plano principal: tabla concatenada")
 
 ```
 
-En el eje principal se nota como las variables E se encuentran ordenadas , lo quiere decir que la mayoria de la variablidad en el eje 1 queda explicada por la edad. En el eje 2 , quedan arriba los s y abajo los n , lo que significa que hay una division clara entre tener problemas odontológicos y no tenerlos. Las personas que no tienen educación formal se encuentran en el cuadrante superior, lo que da a entder que estas personas tienden a tener problemas odontológicos. Otro punto importante a destacar es que la prevalencia de pip y prevalencia de bolsa se encuentran sobretodo en la gente con menor edad. Por otro lado la gente con mayor edad tiende a tener perdida de dientes.
-\newpage
+En el eje principal se nota como las variables E se encuentran ordenadas , lo quiere decir que la mayoria de la variablidad en el eje 1 queda explicada por la edad. En el eje 2 , quedan arriba los s y abajo los n , lo que significa que hay una division clara entre tener problemas odontológicos y no tenerlos. Las personas que no tienen educación formal se encuentran en el cuadrante superior, lo que da a entder que estas personas tienden a tener problemas odontológicos. Otro punto importante a destacar es que la prevalencia de pip y prevalencia de bolsa se encuentran sobretodo en la gente con menor edad. Por otro lado la gente con mayor edad tiende a tener perdida de dientes. \newpage
 
 ```{r}
 #| label: fig-plot4
@@ -206,10 +209,10 @@ Lo primero que se puede notar de igual forma que en el analisis anterior es que 
 #| output: false
 mca811 = MCA(datos %>% select(8:11) %>% mutate(across(where(is.numeric), ~ as.factor(.))))
 ```
-‎ ‎ 
+
+‎‎
 
 \pagebreak
-
 
 # Análisis de Correspondencias Múltiples
 
@@ -248,7 +251,7 @@ MCA(datos %>% select(1:3)%>% mutate(across(where(is.numeric), ~ as.factor(.))))
 
 ```{r}
 #| output: false
-pca_results = PCA(datos %>% select(edad, , S, C, P, O))
+pca_results = PCA(datos %>% mutate(propC=C/CPO,propP=P/CPO,propO=O/CPO) %>%select(edad, propC, propP, propO, CPO))
 ```
 
 ```{r}
@@ -257,7 +260,7 @@ pca_results = PCA(datos %>% select(edad, , S, C, P, O))
 fviz_pca_var(pca_results, col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
 ```
 
-No hay nada muy revelador en el PCA, quizas lo que más llame la atención sea como se openen la cantidad de dientes operados a la cantidad de dientes con caries. Se toma a las variables S,C,P,O como numéricas para ver como se relacionan con la edad. No es necesario tomar CPO ya que es una combinación lineal de las otras y no agrega información al PCA.
+Para el gráfico de PCA utilizamos la proporción de C, P y O sobre el CPO de cada individuo, en general un mayor CPO está relacionado con una edad mayor, ya que ambas variables apuntan en una dirección similar. Además propP también se encuentra apuntando en una dirección similar, por lo cual podríamos decir que este será mayor conforme la edad aumente. La combinacion de cualquier par de proporciones se opone a la restante, por ejemplo tomando la combinacion de propO y propP esta se opone a porpC, es decir que un individuo o bien tiene caries o estas son obturadas o el diente es extraído.
 
 ```{r}
 dummy_matrix <- model.matrix(~ . + 0, data = datos2 %>% select(8:11))
@@ -287,7 +290,9 @@ burt_table <- t(dummy_matrix) %*% dummy_matrix
 
 # Se observa que la variable que mejor representada está en el eje 1 es la edad, encontrándose hacia la izquierda del gráfico las personas de mayor edad. La mayoría de las categorías de las variables odontológicas que se encuentran bien representadas en este plano principal. Se observa que los jóvenes de menor edad presentan perdida dentaria y los de mayor edad tienden a presentar mayormente prevalencia de PIP. Es interesantes que este mismo rango etáreo es el que más cercano está a no tener ningún problema de tipo odontológico.
 ```
+
 \newpage
+
 # Conclusiones
 
 1.  Relación entre nivel educativo y salud bucal: El Análisis de Correspondencias Múltiples muestra una asociación entre individuos con niveles educativos básicos (primaria incompleta y completa) y la prevalencia de condiciones odontológicas específicas, PIP y caries. Este vínculo sugiere que menores niveles de educación pueden estar relacionados con una mayor incidencia de ciertos problemas dentales, mientras que la pérdida dentaria aparece asociada de manera más general a niveles educativos no terciarios.

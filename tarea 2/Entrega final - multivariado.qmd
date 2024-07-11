@@ -27,10 +27,41 @@ Así, nuestro análisis no solo ayuda a esclarecer la estructura de los datos y 
 
 Completar...
 
+## Clustering
+
+Este es un método de clasificación no supervisada que, aplicado a una base de datos, consiste en dividir la misma en subgrupos/clusters de observaciones mediante un orden determinado. Dicho orden toma en cuenta cierta distancia (a definir, depende del tipo de clustering a usar y de la estructura de los datos) entre subgrupos y/o observaciones, según los valores que tomen las variables de dicha base.
+
+**Clusters jerárquicos:**
+
+Los clusters de tipo jerárquico se entienden como particiones encajadas que deben seguir cierta jerarquía basada para la aglomeración o separación de los subconjuntos. Gracias a ello los mismos permiten seguir claramente la historia de construcción de cada grupo.
+Existen dos tipos de clusters jerárquicos:
+
+- **Divisivos**: Comienza tomando como grupo a todo el conjunto de individuos, los cuales irá separando en subgrupos en las siguientes etapas hasta obtener tantos clusters como observaciones.
+
+- **Agregativo**: Cada individuo comienza siendo un cluster unitario que se une con otros en las etapas siguientes hasta formarse un único cluster que cuenta con todos los individuos.
+
+En nuestro análisis usaremos únicamente los de tipo agregativo.
+
+En este tipo de clustering, la distancia a utilizar es seleccionada según las características de las variables en cuestión, así como también la relación entre las mismas. En nuestro caso, como contamos con variables tanto numéricas como categóricas, es necesario usar la distancia de Gower.
+
+La **distancia de Gower** se calcula de distinta manera según el tipo de variable, pero siempre los valores obtenidos se encuentran entre 0 y 1, lo que permite que estas distancias sean comparables.
+
+... completar
+
+**Clusters no jerárquicos:**
+
+Para el análisis usaremos unicamente los clusters no jerárquicos por el método de **K-means**. Este consiste en seleccionas K centros provisorios, los cuales inducen una partición del conjunto de individuos en k subgrupos. Luego, se vuelven a seleccionar nuevos centros de gravedad, en base a las distancias de los individuos del grupo a los centros. Esta nueva partición cuenta con una reducción de la variabilidad intragrupo. Este proceso se repite siempre y cuando las particiones en etapas sucesivas sean diferentes o hasta que se alcanza un número de iteraciones determinado.
+
+**Análisis de Discriminante**
+
+completar...
+
 ```{r}
 #| output: false
+library(tidyverse)
 library(cluster)
 library(NbClust)
+library(factoextra)
 ```
 
 \newpage
@@ -45,9 +76,38 @@ Originalmente se cargan 4 dataframes : D, datos , DATOS y dato01.601, de los cua
 
 ```{r}
 datos = datos %>% select(-c(17:22 , 28)) %>% filter(!if_any(c(1:23), is.na))
+datos = datos %>% select(-c(16, 22, 23))
 ```
 
-# Análisis de cluster
+# Clasificasión no supervisada
+
+## Cluster Jerárquico
+
+```{r}
+DG<-(daisy(datos,metric = "gower"))
+fviz_dist(DG, lab_size = 8)
+#str(DG)
+
+```
+
+```{r}
+W.DG<-agnes(DG,diss=TRUE,method = "ward")
+fviz_dend(W.DG)
+```
+
+```{r}
+#no funciona
+#NbClust(datos, diss=DG, distance = "NULL" , method = "single", index="pseudot2")
+```
+
+```{r}
+#tampoco funciona
+# source('indicadores.R')            
+# IND<-indicadores(W.DG$merge , datos,10)
+```
+
+
+## Cluster No Jerárquico
 
 ```{r}
 df_dummy <- model.matrix(~ . - 1, data = datos)
@@ -65,6 +125,7 @@ fviz_nbclust(df_scaled, kmeans, method = "silhouette") +
   labs(subtitle = "Silueta")
 ```
 
+
 Dada la información obtenida de los gráficos de codo y silueta, se procede a realizar un análisis de cluster con 5 grupos. Ya que el gráfico de codo no presenta un punto de inflexión claro se opta por un punto medio entre silueta y codo.
 
 ```{r}
@@ -72,7 +133,7 @@ kmeans5 <- kmeans(df_scaled, 5, iter.max = 10000)
 datos = datos %>% mutate(cluster = kmeans5$cluster)
 ```
 
-## Entendiendo los clusters
+### Análisis entre clusters
 
 ```{r}
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = factor(cluster))) + labs(title = "Distribución de clusters")
@@ -83,7 +144,7 @@ datos %>% ggplot() + geom_bar(aes(x = cluster, fill = factor(cluster))) + labs(t
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = factor(cluster))) + facet_wrap(~niveledu) + labs(title = "Distribución de clusters por nivel educativo")
 ```
 
-Se observa como el cluster 2 capta en su mayoria las personas que tuvieron educación hasta bachillerato , completo o icompleto. El cluster 5 capta las personas que tienen ciclo basicos completos o incompletos.
+Se observa como el cluster 2 capta en su mayoría las personas que tuvieron educación hasta bachillerato , completo o icompleto. El cluster 5 capta las personas que tienen ciclo basicos completos o incompletos.
 
 ```{r}
 ### por ingreso
@@ -103,15 +164,11 @@ datos %>% ggplot() + geom_boxplot(aes(x = cluster, y = edad, fill = factor(clust
 
 Aunque el cluster 4 pareceria no estar siendo explicado por las otras variables , es explicado por la edad. Este cluster tiene una edad mediana de 70 años. Siendo con diferencia el cluster con mayor edad.
 
-De igual forma el cluster nunero 3 tiene una edad mediana cercana 60 años. Estando bastante concentrada respecto a esta variable.
+De igual forma el cluster número 3 tiene una edad mediana cercana 60 años. Estando bastante concentrada respecto a esta variable.
 
 ```{r}
 ### respecto a cpo y edad
 datos %>% ggplot() + geom_point(aes(x = edad, y = CPO, color = factor(cluster))) + labs(title = "Edad vs CPO por cluster")
-
-
-
-
 ```
 
 Se observa que el cluster 4 es el que tiene mayor CPO y mayor edad.De cierta forma explicando lo que se veia en el PCA de la entrega anterior. La edad y CPO estan relacionados de manera positiva. Se observa como los cluster que estan captados por edades mas avanzadas son los que tienen mayor CPO.
@@ -138,6 +195,8 @@ datos %>% ggplot() + geom_bar(aes(x = cluster, fill = factor(cluster))) + facet_
 ```
 
 La mayorian de los individuos del cluster 1 no tienen perdida dentaria.
+
+# Análisis supervisado
 
 ## Análisis de discriminante logistico
 

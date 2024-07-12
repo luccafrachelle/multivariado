@@ -119,6 +119,7 @@ Como la mayoría de ellos plantean 2 como la cantidad aconsejable, se continuar�
 siluetaW<-silhouette(cutree(W.DG , 2) , DG)
 fviz_silhouette(siluetaW)
 ```
+
 ...completar (son 2 salidas, tabla y gráfico)
 
 ```{r}
@@ -130,8 +131,8 @@ a <- datos %>% ggplot() + geom_boxplot(aes(x = grupoW, y = edad, fill = factor(g
 b <- datos %>% ggplot() + geom_point(aes(x = edad, y = CPO, color = factor(grupoW))) + labs(title = "Edad vs CPO por cluster", color="Cluster")
 grid.arrange(a,b, ncol=2)
 ```
-Los clusters parecen estar divididos entre quienes son menores y mayores a 47 años. También se observa que aquéllos mayores a esta edad, son los que presentan un CPO en general más alto.
 
+Los clusters parecen estar divididos entre quienes son menores y mayores a 47 años. También se observa que aquéllos mayores a esta edad, son los que presentan un CPO en general más alto.
 
 ```{r}
 ## cluster por niveledrec
@@ -207,7 +208,6 @@ datos %>% ggplot() + geom_bar(aes(x = grupoC, fill = factor(grupoC))) + facet_wr
 datos %>% ggplot() + geom_point(aes(x = edad, y = CPO, color = factor(grupoC))) + labs(title = "Edad vs CPO por cluster", color="Cluster")
 ```
 
-
 ```{r}
 par(mfrow=c(2,2))
 datos %>% ggplot() + geom_bar(aes(x = grupoC, fill = factor(grupoC))) + facet_wrap(~V8) + labs(title = "Distribución de clusters por prevalencia de bolsa", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
@@ -216,6 +216,7 @@ datos %>% ggplot() + geom_bar(aes(x = grupoC, fill = factor(grupoC))) + facet_wr
 datos %>% ggplot() + geom_bar(aes(x = grupoC, fill = factor(grupoC))) + facet_wrap(~V10) + labs(title = "Distribución de clusters por prevalencia de PIP", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
 ```
 
+## Cluster No Jerárquico
 
 ## Cluster No Jerárquico
 
@@ -235,71 +236,138 @@ fviz_nbclust(df_scaled, kmeans, method = "silhouette") +
   labs(subtitle = "Silueta")
 ```
 
-Dada la información obtenida de los gráficos de codo y silueta, se procede a realizar un análisis de cluster con 5 grupoC. Ya que el gráfico de codo no presenta un punto de inflexión claro se opta por un punto medio entre silueta y codo.
+Dada la información obtenida de los gráficos de codo y silueta, se procede a realizar un análisis de cluster con 4 grupos. Ya que el gráfico de codo no presenta un punto de inflexión claro se opta por un punto medio entre silueta y codo.
 
 ```{r}
 set.seed(123456)
 kmeans5 <- kmeans(df_scaled, 4, iter.max = 10000)
 datos = datos %>% mutate(cluster = kmeans5$cluster)
+datos = datos %>% mutate(cluster = as.factor(cluster))
 ```
 
 ### Análisis entre clusters
 
 ```{r}
-datos %>% ggplot() + geom_bar(aes(x = cluster, fill = factor(cluster))) + labs(title = "Distribución de clusters")
+datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + labs(title = "Distribución de clusters")
 ```
+
+La distribución de personas entre los clusters es bastante homogénea. No hay un cluster que se destaque por tener una cantidad de personas mucho mayor que los otros.
 
 ```{r}
-## cluster por niveledrec
-datos %>% ggplot() + geom_bar(aes(x = cluster, fill = factor(cluster))) + facet_wrap(~niveledu) + labs(title = "Distribución de clusters por nivel educativo")
+datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~niveledu) + labs(title = "Distribución de clusters por nivel educativo")
 ```
 
-Se observa como el cluster 2 capta en su mayoría las personas que tuvieron educación hasta bachillerato , completo o icompleto. El cluster 5 capta las personas que tienen ciclo basicos completos o incompletos.
+El cluster 4 es el que tiene la mayor cantidad de personas con nivel educativo bajo. La mayoría de las personas en este cluster tienen un nivel educativo que varía entre ciclo básico y primaria incompleta.
+
+Los otros clusters tienen una distribución más homogénea entre los distintos niveles educativos.
 
 ```{r}
-### por ingreso
-datos %>% ggplot() + geom_bar(aes(x = cluster, fill = factor(cluster))) + facet_wrap(~ingresos) + labs(title = "Distribución de clusters por ingresos")
-
+datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~ingresos) + labs(title = "Distribución de clusters por ingresos")
 
 ```
 
-Pareceria que el ingreso no esta explicando la variabilidad de los clusters.
+Parece que los ingresos no están influyendo en la variabilidad entre los clusters.
 
 ```{r}
-## edad
-datos %>% ggplot() + geom_boxplot(aes(x = cluster, y = edad, fill = factor(cluster))) + labs(title = "Edad por cluster")
+datos %>% ggplot() + geom_boxplot(aes(x = cluster, y = edad, fill = cluster)) + labs(title = "Edad por cluster")
 
 
 ```
 
-Aunque el cluster 4 pareceria no estar siendo explicado por las otras variables , es explicado por la edad. Este cluster tiene una edad mediana de 70 años. Siendo con diferencia el cluster con mayor edad.
-
-De igual forma el cluster número 3 tiene una edad mediana cercana 60 años. Estando bastante concentrada respecto a esta variable.
+Se identifican dos clusters claramente diferenciados por edad: el cluster 2, con una mediana de 25 años, y el cluster 4, con una mediana de 60 años. En contraste, los clusters 1 y 3 tienen edades similares, con una mediana de alrededor de 50 años, y presentan la mayor variabilidad en sus distribuciones de edad
 
 ```{r}
-### respecto a cpo y edad
-datos %>% ggplot() + geom_point(aes(x = edad, y = CPO, color = factor(cluster))) + labs(title = "Edad vs CPO por cluster")
+datos %>% ggplot() + geom_point(aes(x = edad, y = CPO, color = cluster)) + labs(title = "Edad vs CPO por cluster")
 ```
 
-Se observa que el cluster 4 es el que tiene mayor CPO y mayor edad.De cierta forma explicando lo que se veia en el PCA de la entrega anterior. La edad y CPO estan relacionados de manera positiva. Se observa como los cluster que estan captados por edades mas avanzadas son los que tienen mayor CPO.
+Se observa una correlación positivia entre la edad y el CPO. El cluster 4 es el que tiene tanto el CPO más alto como la mayor edad. Por otro lado, se nota una diferencia entre el cluster 1 y el cluster 3 respecto al CPO. Aunque tienen edades similares, con una mediana de alrededor de 50 años, el cluster 3 presenta un CPO mayor. El cluster 1, en cambio, está por debajo tanto en CPO como en edad.
 
-Aunque durante el analisis se pudo entender la mayoria de cluster , el cluster 1 no se pudo explicar de manera clara. Asi que se va a realizar un analisis respecto a las variables odontologicas.
-
-Con un poco de detalle se puede ver que el cluster 1 2 y 5 tienen un correlación lineal entre ellos 3.
-
-Por otro lado el cluster 4 y 3 no estan correlacionados per se comportan parecido. Con la unica diferencia que el cluster 3 tiene un mayor edad.
+## Analisis probelmas odontologicos
 
 ```{r}
-datos %>% ggplot() + geom_bar(aes(x = cluster, fill = factor(cluster))) + facet_wrap(~V8) + labs(title = "Distribución de clusters por prevalencia de bolsa")
+datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V8) + labs(title = "Distribución de clusters por prevalencia de bolsa")
 ```
+
+No hay una gran diferencia entre los clusters en cuanto a la prevalencia de bolsa.
 
 ```{r}
-datos %>% ggplot() + geom_bar(aes(x = cluster, fill = factor(cluster))) + facet_wrap(~V9) + labs(title = "Distribución de clusters por perdida dentaria")
+datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V9) + labs(title = "Distribución de clusters por perdida dentaria")
 ```
 
-Es impresionante como todo el cluster 2 queda limpio en pérdida dentaria. A su vez se empieza a entender mejor al cluster 1 . La mayoria de ellos no tienen perdida dentaria.
+Llama la atención lo bien que los clusters se discriminan en función de la pérdida dentaria. Por un lado, el cluster 4 está compuesto completamente por personas que no poseen pérdida dentaria, mientras que los clusters 2 y 3 pertenecen en su gran mayoría a personas que tienen pérdida dentaria. El cluster 1, sin embargo, no parece estar tan bien explicado por la pérdida dentaria.
 
-La mayorian de los individuos del cluster 1 no tienen perdida dentaria.
+```{r}
+
+datos %>% ggplot() + geom_bar(aes(x = cluster, fill = factor(cluster))) + facet_wrap(~V11) + labs(title = "Distribución de clusters por prevalencia de PIP")
+
+```
+
+Un poco vinculando con lo visto en el PCA, se observa que el cluster más joven es el cluster 2, el cual tiene la menor prevalencia de PIP. En contraste, el cluster 4 tiene la mayor edad y la mayor prevalencia de PIP. Además, se observa que los clusters 1 y 3 tienen una prevalencia de PIP similar.
+
+## Respecto a variables de salud
+
+```{r}
+datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V1) + labs(title = "Distribución de clusters por si fuma")
+```
+
+Aqui se observa una diferencia clara entre los cluster que eran mas parecidos. Queda por un lado el cluster 1 en su mayoria fumadores y por otro lado el cluster 3 en su mayoria no fumadores. El cluster 4 por su parte también queda bien diferenciado , la mayoria se encunetran en personas que no fuman.
+
+```{r}
+datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V4) + labs(title = "Distribución de clusters por peso")
+```
+
+En este caso se tiene que el cluster 3 y 4 queda en su mayoria en personas con sobrepeso. Mientras que el cluster 2 queda en su mayoria en personas con peso normal. El cluster 1 queda en su mayoria en personas con bajo peso.
+
+### Cluster 2
+
+-   **Edad:** Las personas más jóvenes.
+
+-   **CPO:** Bajo.
+
+-   **Pérdida Dentaria:** Presenta pérdida dentaria.
+
+-   **Prevalencia de PIP:** Mayormente no tiene prevalencia de PIP.
+
+-   **Fumar:** La mayoría no fuma.
+
+### Cluster 4
+
+-   **Edad:** Las edades más altas.
+
+-   **CPO:** Los CPO más altos.
+
+-   **Pérdida Dentaria:** No tienen pérdida dentaria.
+
+-   **Prevalencia de PIP:** Tienen prevalencia de PIP.
+
+-   **Fumar:** La mayoría no fuma.
+
+### Cluster 1
+
+-   **Edad:** Similar al cluster 3.
+
+-   **CPO:** Un poco mayor que el cluster 3.
+
+-   **Pérdida Dentaria:** No está bien explicado por la pérdida dentaria.
+
+-   **Prevalencia de PIP:** Prevalencia de PIP un poco alta.
+
+-   **Fumar:** La mayoría fuma.
+
+### Cluster 3
+
+-   **Edad:** Similar al cluster 1.
+
+-   **CPO:** Un poco menor que el cluster 1.
+
+-   **Pérdida Dentaria:** Presenta pérdida dentaria.
+
+-   **Prevalencia de PIP:** Prevalencia de PIP un poco alta.
+
+-   **Fumar:** La mayoría no fuma.
+
+-   **Peso:** La mayoría tiene sobrepeso
+
 
 # Análisis supervisado
 

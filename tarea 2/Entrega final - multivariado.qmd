@@ -56,6 +56,10 @@ Para el análisis usaremos unicamente los clusters no jerárquicos por el métod
 
 Dado que buscamos predecir la variable V11, la cual corresponde a prevalencia de PIP, la cual es binaria debemos de utilizar un discriminante logístico, este consiste en realizar una regresión logística, tomando como variable a predecir V11, ya que esta nos dará predicciones en el intervalo $[0,1]$. Luego se busca el punto de corte óptimo, es decir tomamos un valor tal que toda predicción sobre este se toma como $1$ y por debajo como $0$, tal que minimice el error de predicción.
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, warning = F, message = F)
+```
+
 ```{r}
 #| output: false
 library(tidyverse)
@@ -64,21 +68,20 @@ library(NbClust)
 library(factoextra)
 library(knitr)
 library(gridExtra)
+library(caret)
+library(pROC)
+library(MASS)
 ```
 
 \newpage
-
-# Carga de datos y limpieza
 
 ```{r}
 load('./data/bfm.RData')
 ```
 
-Originalmente se cargan 4 dataframes : D, datos , DATOS y dato01.601, de los cuales solo utilizaremos datos.
-
 ```{r}
-datos = datos %>% select(-c(17:22 , 28)) %>% filter(!if_any(c(1:23), is.na))
-datos = datos %>% select(-c(16, 22, 23))
+datos = datos %>% dplyr::select(-c(17:22 , 28)) %>% dplyr::filter(!if_any(c(1:23), is.na))
+datos = datos %>% dplyr::select(-c(16, 22, 23))
 ```
 
 # Clasificasión no supervisada
@@ -94,12 +97,12 @@ Se utiliza el **método de Ward** para formar los clusters, los cuales se van ag
 
 ```{r}
 W.DG<-agnes(DG, diss=TRUE,method = "ward")
-fviz_dend(W.DG)
+fviz_dend(W.DG, show_labels = F)
 ```
 
 Para elegir la cantidad de clusters, se recurre a los índices: *Cindex*, *Silouhette*, *Mcclain*, *Dunn* y *Frey*.
 
-```{r, message=FALSE}
+```{r}
 cindexW <- NbClust(data=NULL, diss=DG, distance=NULL, method="ward.D", index="cindex")[[2]][1]
 silW <- NbClust(data=NULL, diss=DG, distance=NULL, method="ward.D", index="silhouette")[[2]][1]
 mcclainW <- NbClust(data=NULL, diss=DG, distance=NULL, method="ward.D", index="mcclain")[[2]][1]
@@ -116,15 +119,23 @@ Como la mayoría de ellos plantean 2 como la cantidad aconsejable, se continuar�
 
 ```{r}
 siluetaW<-silhouette(cutree(W.DG , 2) , DG)
-fviz_silhouette(siluetaW)
+fviz_silhouette(siluetaW)$a
 ```
+```{r}
+fviz_silhouette(siluetaW, print.summary = F)
+```
+
+\
 
 El ancho de silueta es bajo, por lo que podría haber una mejor forma de agrupar las observaciones. Las observaciones que se encuentran por debajo del 0 posiblemente se encuentran mal clasificadas.
 
 ```{r}
 datos2 <- datos
 datos2$grupoW<-cutree(W.DG , 2)
-datos2$grupoW<-as.factor(datos$grupoW)
+datos2$grupoW<-as.factor(datos2$grupoW)
+```
+
+```{r, fig.height=3}
 ## edad
 a <- datos2 %>% ggplot() + geom_boxplot(aes(x = grupoW, y = edad, fill = factor(grupoW))) + labs(title = "Edad por cluster", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
 ### respecto a cpo y edad
@@ -132,19 +143,21 @@ b <- datos2 %>% ggplot() + geom_point(aes(x = edad, y = CPO, color = factor(grup
 grid.arrange(a,b, ncol=2)
 ```
 
+
 Los clusters parecen estar divididos entre quienes son menores y mayores a 47 años. También se observa que aquéllos mayores a dicha edad, son los que presentan un CPO en general más alto.
 
 ```{r}
-c <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V8) + labs(title = "Clusters por prevalencia de bolsa", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
-d <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V9) + labs(title = "Clusters por perdida dentaria", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
-e <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V10) + labs(title = "Clusters por prevalencia de caries", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
-f <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V10) + labs(title = "Clusters por prevalencia de PIP", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+c <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V8) + labs(title = "Prevalencia de bolsa", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+d <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V9) + labs(title = "Perdida dentaria", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+e <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V10) + labs(title = "Prevalencia de caries", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+f <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V10) + labs(title = "Prevalencia de PIP", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
 
 grid.arrange(c,d,e,f, ncol=2)
 ```
 
 La diferencia más notoria se observa en la pérdida dentaria, donde el primer grupo, aquellas personas más mayores, en su mayoría no presenta pérdida dentaria, mientras que el segundo grupo, aquéllos más jóvenes, cuentan con una frecuencia alta de la misma variable. Las demás variables no parecen mostrar diferencias significativas entre las categorías según el grupo.
 
+\
 
 ```{r}
 a2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V1) + labs(title = "Fumador", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
@@ -154,10 +167,12 @@ d2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + f
 e2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V6) + labs(title = "Hipertensión", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
 f2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V7) + labs(title = "Diabetes", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
 
-grid.arrange(a2,b2,c2,d2, e2,f2,ncol=3)
+grid.arrange(a2,b2,c2,d2, e2,f2,ncol=2)
 ```
 
 El cluster 2 es el que presenta la mayor proporción en la categoría "no" entre aquellas variables comportamentales y de enfermedades.
+
+\newpage
 
 ## Cluster No Jerárquico
 
@@ -167,14 +182,12 @@ df_dummy <- model.matrix(~ . - 1, data = datos)
 df_scaled <- scale(df_dummy)
 ```
 
-```{r}
-fviz_nbclust(df_scaled, kmeans, method = "wss") +
+```{r, fig.height=3}
+a3 <- fviz_nbclust(df_scaled, kmeans, method = "wss") +
   labs(subtitle = "Codo")
-```
-
-```{r}
-fviz_nbclust(df_scaled, kmeans, method = "silhouette") +
+b3 <- fviz_nbclust(df_scaled, kmeans, method = "silhouette") +
   labs(subtitle = "Silueta")
+grid.arrange(a3,b3, ncol=2)
 ```
 
 Dada la información obtenida de los gráficos de codo y silueta, se procede a realizar un análisis de cluster con 4 grupos. Ya que el gráfico de codo no presenta un punto de inflexión claro se opta por un punto medio entre silueta y codo.
@@ -188,7 +201,7 @@ datos = datos %>% mutate(cluster = as.factor(cluster))
 
 ### Análisis entre clusters
 
-```{r}
+```{r, fig.height=3, fig.width=5}
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + labs(title = "Distribución de clusters")
 ```
 
@@ -198,9 +211,7 @@ La distribución de personas entre los clusters es bastante homogénea. No hay u
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~niveledu) + labs(title = "Distribución de clusters por nivel educativo")
 ```
 
-El cluster 4 es el que tiene la mayor cantidad de personas con nivel educativo bajo. La mayoría de las personas en este cluster tienen un nivel educativo que varía entre ciclo básico y primaria incompleta.
-
-Los demás clusters tienen una distribución más homogénea entre los distintos niveles educativos.
+El cluster 4 es el que tiene la mayor cantidad de personas con nivel educativo bajo. La mayoría de las personas en este cluster tienen un nivel educativo que varía entre ciclo básico y primaria incompleta. Los demás clusters tienen una distribución más homogénea entre los distintos niveles educativos.
 
 ```{r}
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~ingresos) + labs(title = "Distribución de clusters por ingresos")
@@ -209,36 +220,33 @@ datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~in
 
 Los ingresos no parecen influir en la variabilidad entre los clusters.
 
-```{r}
+```{r, fig.height=3}
 datos %>% ggplot() + geom_boxplot(aes(x = cluster, y = edad, fill = cluster)) + labs(title = "Edad por cluster")
-
-
 ```
 
 Se identifican dos clusters claramente diferenciados por edad: el cluster 2, con una mediana de 25 años, y el cluster 4, con una mediana de 60 años. En contraste, los clusters 1 y 3 tienen edades similares, con una mediana de alrededor de 50 años, y presentan la mayor variabilidad en sus distribuciones de edad
 
-```{r}
+```{r, fig.height=3}
 datos %>% ggplot() + geom_point(aes(x = edad, y = CPO, color = cluster)) + labs(title = "Edad vs CPO por cluster")
 ```
 
 Se observa una correlación positivia entre la edad y el CPO. El cluster 4 en general tiene tanto el CPO más alto como la mayor edad. Por otro lado, se nota una diferencia entre el cluster 1 y el cluster 3 respecto al CPO. Aunque tienen edades similares, con una mediana de alrededor de 50 años, el cluster 3 presenta un CPO mayor. El cluster 1, en cambio, está por debajo tanto en CPO como en edad.
 
-**Analisis problemas odontológicos**
+**Análisis problemas odontológicos**
 
-```{r}
+```{r, fig.height=3}
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V8) + labs(title = "Distribución de clusters por prevalencia de bolsa")
 ```
 
 No hay una gran diferencia entre los clusters en cuanto a la prevalencia de bolsa. Solo el cluster 2 pareciera contar con una mayor fecuencia en no prevalencia de bolsa, en comparación al resto.
 
-```{r}
+```{r, fig.height=3}
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V9) + labs(title = "Distribución de clusters por perdida dentaria")
 ```
 
 Los grupos parecen diferenciarse claramente según su frecuencia de pérdida dentaria. Por un lado, el cluster 4 está compuesto completamente por personas que no poseen pérdida dentaria, mientras que los clusters 2 y 3 pertenecen en su gran mayoría a personas que sí tienen pérdida dentaria. El cluster 1, sin embargo, no parece estar tan diferenciado según esta variable.
 
-```{r}
-
+```{r, fig.height=3}
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = factor(cluster))) + facet_wrap(~V11) + labs(title = "Distribución de clusters por prevalencia de PIP")
 
 ```
@@ -247,31 +255,19 @@ Se observa que el cluster más joven es el cluster 2, el cual tiene la menor pre
 
 **Análisis según factores de incidencia en la salud bucal**
 
-```{r}
+```{r, fig.height=3}
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V1) + labs(title = "Distribución de clusters según si fuma")
 ```
 
 Aquí se observa una diferencia clara entre los cluster en los gráficos anteriores eran mas parecidos: por un lado, el cluster 1 consiste en su mayoría de fumadores y por otro lado, el cluster 3 está compuesto mayormente de no fumadores. El cluster 4, por su parte, también cuenta con una gran proporción de no fumadores.
 
-```{r}
+```{r, fig.height=3}
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V4) + labs(title = "Distribución de clusters por peso")
 ```
 
 En este caso se tiene que el cluster 3 y 4 son mayoritariamente personas con sobrepeso, mientras que el cluster 2 cuenta en su mayoría con personas con peso normal. El cluster 1 no se diferencia según el peso.
 
 En resumen:
-
-**Cluster 1**
-
--   **Edad:** Similar al cluster 3.
-
--   **CPO:** Un poco mayor que el cluster 3.
-
--   **Pérdida Dentaria:** No está bien explicado por la pérdida dentaria.
-
--   **Prevalencia de PIP:** Prevalencia de PIP un poco alta.
-
--   **Fumar:** La mayoría fuma.
 
 **Cluster 2**
 
@@ -284,6 +280,30 @@ En resumen:
 -   **Prevalencia de PIP:** Mayormente no tiene prevalencia de PIP.
 
 -   **Fumar:** La mayoría no fuma.
+
+**Cluster 4**
+
+-   **Edad:** Las edades más altas.
+
+-   **CPO:** Los CPO más altos.
+
+-   **Pérdida Dentaria:** No tienen pérdida dentaria.
+
+-   **Prevalencia de PIP:** Tienen prevalencia de PIP.
+
+-   **Fumar:** La mayoría no fuma.
+
+**Cluster 1**
+
+-   **Edad:** Similar al cluster 3.
+
+-   **CPO:** Un poco mayor que el cluster 3.
+
+-   **Pérdida Dentaria:** No está bien explicado por la pérdida dentaria.
+
+-   **Prevalencia de PIP:** Prevalencia de PIP un poco alta.
+
+-   **Fumar:** La mayoría fuma.
 
 **Cluster 3**
 
@@ -299,33 +319,21 @@ En resumen:
 
 -   **Peso:** La mayoría tiene sobrepeso.
 
-**Cluster 4**
-
--   **Edad:** Las edades más altas.
-
--   **CPO:** Los CPO más altos.
-
--   **Pérdida Dentaria:** No tienen pérdida dentaria.
-
--   **Prevalencia de PIP:** Tienen prevalencia de PIP.
-
--   **Fumar:** La mayoría no fuma.
+\newpage
 
 # Análisis supervisado
 
 ## Análisis de discriminante logistico
 
-Teniendo en cuenta que la prevalencia de pip (V11) es un factor importante de riesgo odnologico se procede a realizar un analisis de discriminante logistico. Para intentar predecir la prevalencia de pip en base a las otras variables.
+Teniendo en cuenta que la prevalencia de pip (V11) es un factor importante de riesgo odnologico se procede a realizar un análisis de discriminante logistico. Para intentar predecir la prevalencia de pip en base a las otras variables.
 
 ```{r}
-library(caret)
-library(pROC)
 trainIndex <- createDataPartition(datos$V11, p = 0.7, list = FALSE)
 trainData <- datos[trainIndex, ]
 testData <- datos[-trainIndex, ]
 ```
 
-```{r, echo=FALSE}
+```{r}
 modelo_logistico <- glm(V11 ~ .-cluster, data = trainData, family = binomial)
 modelostep<-stepAIC(modelo_logistico,direction="both")
 ```

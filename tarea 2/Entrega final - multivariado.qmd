@@ -7,9 +7,63 @@ editor: visual
 
 # Resumen Ejecutivo
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, warning = F, message = F)
+```
+
+```{r}
+#| output: false
+library(tidyverse)
+library(cluster)
+library(NbClust)
+library(factoextra)
+library(knitr)
+library(gridExtra)
+library(caret)
+library(pROC)
+library(MASS)
+
+```
+
+
+
 Los datos utilizados en este análisis surgen de un estudio epidemiológico llevado a cabo en la Facultad de Odontología de la Universidad de la República, Uruguay, durante el período 2015-2016. Los mismos son recogidos de 602 individuos que acudieron a consulta. Este análisis se centra mayormente en el uso de variables binarias para identificar la presencia de enfermedades no transmisibles (ENT) y otros factores de riesgo asociados con la salud bucal, tratados aquí como comorbilidades. Los atributos estudiados se agrupan en tres bloques principales: comportamentales, ENT generales, y patologías odontológicas específicas, además se cuenta con variables demográficas diversas (edad, ingreso, sexo, nivel educativo). Entre los comportamentales se incluyen el consumo diario de tabaco, el consumo nocivo de alcohol y la insuficiencia de actividad física. Los ENT se refieren a condiciones como sobrepeso/obesidad, razón de cintura-cadera, hipertensión y diabetes. Finalmente, las condiciones odontológicas incluyen la prevalencia de bolsas periodontales, pérdida dentaria, caries y prevalencia de patología periapical infecciosa (PIP).
 
-![](./variables.png)
+```{r}
+datos <- data.frame(
+  Variable = c("V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11"),
+  Descripción = c(
+    "Fuma a diario", 
+    "Consumo nocivo de alcohol", 
+    "Actividad física insuficiente", 
+    "IMC sobrepeso/obesidad", 
+    "Razón de Cintura Cadera", 
+    "Hipertensión", 
+    "Diabetes", 
+    "Prev. bolsa", 
+    "Pérdida Dentaria", 
+    "Prevalencia de Caries", 
+    "Prevalencia de PIP"
+  ),
+  Bloque = c(1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3),
+  Tipo = c(
+    "Comportamental", 
+    "Comportamental", 
+    "Comportamental", 
+    "ENT", 
+    "ENT", 
+    "ENT", 
+    "ENT", 
+    "Odontológicas", 
+    "Odontológicas", 
+    "Odontológicas", 
+    "Odontológicas"
+  )
+)
+
+kable(datos, col.names = c("Variable", "Descripción", "Bloque", "Tipo"), caption = "Tabla de Variables")
+
+```
 
 Además contamos con las variables C, P, O y CPO, donde C es la cantidad de dientes con caries, P es la cantidad de dientes perdidos debido a caries y O la cantidad de dientes con caries obturadas, además CPO es la suma de las tres anteriores.
 
@@ -27,13 +81,13 @@ Así, nuestro análisis no solo ayuda a esclarecer la estructura de los datos y 
 
 ## Clustering
 
-Este es un método de clasificación no supervisada que, aplicado a una base de datos, consiste en dividir la misma en subgrupoC/clusters de observaciones mediante un orden determinado. Dicho orden toma en cuenta cierta distancia (a definir, depende del tipo de clustering a usar y de la estructura de los datos) entre subgrupoC y/o observaciones, según los valores que tomen las variables de dicha base.
+Este es un método de clasificación no supervisada que, aplicado a una base de datos, consiste en dividir la misma en subgrupo/clusters de observaciones mediante un orden determinado. Dicho orden toma en cuenta cierta distancia (a definir, depende del tipo de clustering a usar y de la estructura de los datos) entre subgrupo y/o observaciones, según los valores que tomen las variables de dicha base.
 
 **Clusters jerárquicos:**
 
 Los clusters de tipo jerárquico se entienden como particiones encajadas que deben seguir cierta jerarquía basada para la aglomeración o separación de los subconjuntos. Gracias a ello los mismos permiten seguir claramente la historia de construcción de cada grupo. Existen dos tipos de clusters jerárquicos:
 
--   **Divisivos**: Comienza tomando como grupo a todo el conjunto de individuos, los cuales irá separando en subgrupoC en las siguientes etapas hasta obtener tantos clusters como observaciones.
+-   **Divisivos**: Comienza tomando como grupo a todo el conjunto de individuos, los cuales irá separando en subgrupo en las siguientes etapas hasta obtener tantos clusters como observaciones.
 
 -   **Agregativo**: Cada individuo comienza siendo un cluster unitario que se une con otros en las etapas siguientes hasta formarse un único cluster que cuenta con todos los individuos.
 
@@ -49,28 +103,13 @@ El método de clustering jerárquico que se usará será el **método de Ward**.
 
 **Clusters no jerárquicos:**
 
-Para el análisis usaremos unicamente los clusters no jerárquicos por el método de **K-means**. Este consiste en seleccionas K centros provisorios, los cuales inducen una partición del conjunto de individuos en k subgrupoC. Luego, se vuelven a seleccionar nuevos centros de gravedad, en base a las distancias de los individuos del grupo a los centros. Esta nueva partición cuenta con una reducción de la variabilidad intra-grupo. Este proceso se repite siempre y cuando las particiones en etapas sucesivas sean diferentes o hasta que se alcanza un número de iteraciones determinado.
+Para el análisis usaremos unicamente los clusters no jerárquicos por el método de **K-means**. Este consiste en seleccionas K centros provisorios, los cuales inducen una partición del conjunto de individuos en k subgrupo. Luego, se vuelven a seleccionar nuevos centros de gravedad, en base a las distancias de los individuos del grupo a los centros. Esta nueva partición cuenta con una reducción de la variabilidad intra-grupo. Este proceso se repite siempre y cuando las particiones en etapas sucesivas sean diferentes o hasta que se alcanza un número de iteraciones determinado.
 
 **Análisis Discriminante**
 
 Dado que buscamos predecir la variable V11, la cual corresponde a prevalencia de PIP, la cual es binaria debemos de utilizar un discriminante logístico, este consiste en realizar una regresión logística, tomando como variable a predecir V11, ya que esta nos dará predicciones en el intervalo $[0,1]$. Luego se busca el punto de corte óptimo, es decir tomamos un valor tal que toda predicción sobre este se toma como $1$ y por debajo como $0$, tal que minimice el error de predicción.
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F, warning = F, message = F)
-```
 
-```{r}
-#| output: false
-library(tidyverse)
-library(cluster)
-library(NbClust)
-library(factoextra)
-library(knitr)
-library(gridExtra)
-library(caret)
-library(pROC)
-library(MASS)
-```
 
 \newpage
 
@@ -94,7 +133,7 @@ DG<-daisy(datos,metric = "gower")
 
 Se utiliza el **método de Ward** para formar los clusters, los cuales se van agrupando en cada etapa de la forma en que se muestra en el siguiente dendograma.
 
-```{r}
+```{r , warning=FALSE}
 W.DG<-agnes(DG, diss=TRUE,method = "ward")
 fviz_dend(W.DG, show_labels = F)
 ```
@@ -102,32 +141,42 @@ fviz_dend(W.DG, show_labels = F)
 Para elegir la cantidad de clusters, se recurre a los índices: *Cindex*, *Silouhette*, *Mcclain*, *Dunn* y *Frey*.
 
 ```{r}
+#| output: false
 cindexW <- NbClust(data=NULL, diss=DG, distance=NULL, method="ward.D", index="cindex")[[2]][1]
 silW <- NbClust(data=NULL, diss=DG, distance=NULL, method="ward.D", index="silhouette")[[2]][1]
 mcclainW <- NbClust(data=NULL, diss=DG, distance=NULL, method="ward.D", index="mcclain")[[2]][1]
 dunnW <- NbClust(data=NULL, diss=DG, distance=NULL, method="ward.D", index="dunn")[[2]][1]
 freyW <- NbClust(data=NULL, diss=DG, distance=NULL, method="ward.D", index="frey")[[2]][1]
 
+```
+
+```{r}
 nro_clustersW <- as.data.frame(t(c(cindexW, silW, mcclainW, dunnW, freyW)))
 colnames(nro_clustersW) <- c("Cindex", "Silohuette", "Mcclain", "Dunn", "Frey")
 rownames(nro_clustersW) <- c("Ward")
 kable(nro_clustersW)
 ```
 
+
 Como la mayoría de ellos plantean 2 como la cantidad aconsejable, se continuará el análisis para clusters jerárquicos en función de esta división.
 
 ```{r}
-siluetaW<-silhouette(cutree(W.DG , 2) , DG)
-fviz_silhouette(siluetaW)$a
+siluetaW <- silhouette(cutree(W.DG, 2), DG)
+fviz_silhouette(siluetaW )
+
+
+
 ```
 
-```{r}
-fviz_silhouette(siluetaW, print.summary = F)
-```
+
+
+
+
+
+El ancho de silueta es bajo, por lo que podría haber una mejor forma de agrupar las observaciones. Las observaciones que se encuentran por debajo del 0 posiblemente se encuentran mal clasificadas.
 
 \
 
-El ancho de silueta es bajo, por lo que podría haber una mejor forma de agrupar las observaciones. Las observaciones que se encuentran por debajo del 0 posiblemente se encuentran mal clasificadas.
 
 ```{r}
 datos2 <- datos
@@ -158,7 +207,7 @@ La diferencia más notoria se observa en la pérdida dentaria, donde el primer g
 
 \
 
-```{r}
+```{r , fig.height=6}
 a2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V1) + labs(title = "Fumador", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
 b2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V2) + labs(title = "Consumo nocivo de alcohol", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
 c2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V3) + labs(title = "Actividad física insuficiente", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
@@ -206,13 +255,13 @@ datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + labs(title = "
 
 La distribución de personas entre los clusters es bastante homogénea. No hay un cluster que se destaque por tener una cantidad de personas mucho mayor que los otros.
 
-```{r}
+```{r , fig.dim=c(8,4)}
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~niveledu) + labs(title = "Distribución de clusters por nivel educativo")
 ```
 
 El cluster 4 es el que tiene la mayor cantidad de personas con nivel educativo bajo. La mayoría de las personas en este cluster tienen un nivel educativo que varía entre ciclo básico y primaria incompleta. Los demás clusters tienen una distribución más homogénea entre los distintos niveles educativos.
 
-```{r}
+```{r ,fig.dim=c(8,4)}
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~ingresos) + labs(title = "Distribución de clusters por ingresos")
 
 ```
@@ -246,7 +295,7 @@ datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V9
 Los grupos parecen diferenciarse claramente según su frecuencia de pérdida dentaria. Por un lado, el cluster 4 está compuesto completamente por personas que no poseen pérdida dentaria, mientras que los clusters 2 y 3 pertenecen en su gran mayoría a personas que sí tienen pérdida dentaria. El cluster 1, sin embargo, no parece estar tan diferenciado según esta variable.
 
 ```{r, fig.height=3}
-datos %>% ggplot() + geom_bar(aes(x = cluster, fill = factor(cluster))) + facet_wrap(~V11) + labs(title = "Distribución de clusters por prevalencia de PIP")
+datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V11) + labs(title = "Distribución de clusters por prevalencia de PIP")
 
 ```
 
@@ -266,7 +315,11 @@ datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V4
 
 En este caso se tiene que el cluster 3 y 4 son mayoritariamente personas con sobrepeso, mientras que el cluster 2 cuenta en su mayoría con personas con peso normal. El cluster 1 no se diferencia según el peso.
 
-En resumen:
+\newpage
+
+
+**En resumen:**
+
 
 **Cluster 2**
 
@@ -333,6 +386,7 @@ testData <- datos[-trainIndex, ]
 ```
 
 ```{r}
+#| output: false
 modelo_logistico <- glm(V11 ~ .-cluster, data = trainData, family = binomial)
 modelostep<-stepAIC(modelo_logistico,direction="both")
 ```
@@ -367,9 +421,10 @@ predicciones_clase <- ifelse(predicciones_clase == 1, "si", "no") %>% factor(lev
 
 
 conf_matrix <- confusionMatrix(predicciones_clase, testData$V11)
-conf_matrix
-
+conf_matrix$table %>% kable()
 ```
+
+
 
 Podemos ver que en general el modelo tiende a sobreestimar la cantidad de individuos con prevalencia de PIP, teniendo un error de aproximadamente un $50\%$ cuando estos no cuentan con PIP.
 
@@ -387,6 +442,7 @@ testData <- testData %>% dplyr::select(V11, V3, V8, sexo, edad, S, C, P, O)
 ```
 
 ```{r}
+set.seed(127716)
 modelo_knn <- train(V11 ~ ., data = trainData, method = "knn", preProcess = c("center", "scale"), tuneLength = 10)
 ```
 
@@ -400,16 +456,18 @@ conf_matrix_knn <- confusionMatrix(predicciones_knn, testData$V11)
 
 
 ```{r}
-conf_matrix_knn
+conf_matrix_knn$table %>% kable()
 ```
-El modelo en lineas generales funciona un poco mejor. Predice de mejor forma los casos en los que hay prevalencia de PIP a costa de tener un error mayor en los casos en los que no hay prevalencia de PIP ( clasificandolo como si en prevalencia de PIP).
+
+```{r}
+conf_matrix_knn$overall %>% round(3) %>% as.data.frame() %>% setNames("Métrica") %>% 
+  kable()
+```
+
+Este modelo en general funciona mejor que el logístico. Predice de mejor forma los casos en los que hay prevalencia de PIP a costa de tener un error mayor en los casos en los que no hay prevalencia de PIP ( clasificandolo como si en prevalencia de PIP).
 
 
-
-
-
-Curva AUC
-
+### Curva ROC
 ```{r}
 probs <- predict(modelo_knn, newdata = testData, type = "prob")
 auc_knn <- roc(testData$V11, probs$si)
@@ -419,7 +477,17 @@ plot(auc_knn, col = "blue")
 ```{r}
 optimal_threshold <- coords(auc_knn, "best", ret = "threshold")
 ```
-En este caso el punto de corte óptimo es de `r round(as.numeric(optimal_threshold),3)`. Que es un poco mayor que en el modelo anterior. Lo cual tiene sentido ya que este modelo tiende a clasificar más casos como prevalencia de PIP. Por lo que tiene sentido la probialidad de corte sea mayor.
+En este caso el punto de corte óptimo es de `r round(as.numeric(optimal_threshold),3)`. Que es un poco menor que en el modelo de regresión logística. Lo cual tiene sentido ya que este modelo tiende a clasificar más casos como "si" y la mayoría de los errores provienen de clasificar como "si" a casos que en realidad son "no".
+
+\newpage
+
+## Conclusiones finales   
+Se observa que los clústeres jerárquicos no fueron útiles para separar la población en grupos que se diferencien en las variables.
+
+En los clústeres no jerárquicos se reveló que la edad es un factor importante para separar a la población en grupos, siendo los más jóvenes los que presentan pérdida dentaria y prevalencia de PIP más baja. Mientras que los más viejos presentan un CPO más alto y una prevalencia de PIP más alta. Por otro lado, se identificaron dos grupos que a priori parecían similares; sin embargo, al analizar las variables, se observa que quedan diferenciados por variables de riesgo. Uno de estos clústeres está compuesto por fumadores y el otro por personas con sobrepeso. A su vez, se pudo validar alguna de las conclusiones de la primera entrega, como la relación entre el CPO y la edad.
+
+Por otro lado, el análisis discriminante logístico y el de K vecinos más cercanos permitieron predecir la prevalencia de PIP en base a las variables de la muestra, siendo el modelo de K vecinos más cercanos el que mejor se ajusta a los datos, aunque ambos modelos funcionan bien.
+
 
 
 

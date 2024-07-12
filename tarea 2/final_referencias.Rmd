@@ -1,0 +1,10 @@
+---
+title: ""
+author: ""
+date: ""
+output: pdf_document
+bibliography: [bib_entrega.final.bib]
+nocite: '@*' 
+---
+# Referencias
+<div id="refs"></div>

@@ -51,7 +51,7 @@ Para el análisis usaremos unicamente los clusters no jerárquicos por el métod
 
 **Análisis Discriminante**
 
-completar...
+Dado que buscamos predecir la variable V11, la cual corresponde a prevalencia de PIP, la cual es binaria debemos de utilizar un discriminante logístico, este consiste en realizar una regresión logística, tomando como variable a predecir V11, ya que esta nos dará predicciones en el intervalo $[0,1]$. Luego se busca el punto de corte óptimo, es decir tomamos un valor tal que toda predicción sobre este se toma como $1$ y por debajo como $0$, tal que minimice el error de predicción.
 
 ```{r}
 #| output: false
@@ -146,13 +146,10 @@ grid.arrange(c,d,e,f, ncol=2)
 
 La diferencia más notoria se observa en la pérdida dentaria, donde el primer grupo, aquellas personas más mayores, en su mayoría no presenta pérdida dentaria, mientras que el segundo grupo, aquéllos más jóvenes, cuentan con una frecuencia alta de la misma variable. Las demás variables no parecen mostrar diferencias significativas entre las categorías según el grupo.
 
-
 ```{r}
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V1) + labs(title = "Distribución de clusters por si fuma")datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V4) + labs(title = "Distribución de clusters por peso")
 
 ```
-
-
 
 **Método del vecino más lejano**
 
@@ -365,12 +362,11 @@ En resumen:
 
 -   **Fumar:** La mayoría no fuma.
 
-
 # Análisis supervisado
 
 ## Análisis de discriminante logistico
 
-Teniendo en cuenta que la prevalencia de pip(V11) es un factor importante de riesgo odnologico se procede a realizar un analisis de discriminante logistico. Para intentar predecir la prevalencia de pip en base a las otras variables.
+Teniendo en cuenta que la prevalencia de pip (V11) es un factor importante de riesgo odnologico se procede a realizar un analisis de discriminante logistico. Para intentar predecir la prevalencia de pip en base a las otras variables.
 
 ```{r}
 library(caret)
@@ -380,29 +376,35 @@ trainData <- datos[trainIndex, ]
 testData <- datos[-trainIndex, ]
 ```
 
-```{r}
-modelo_logistico <- glm(V11 ~ ., data = trainData, family = binomial)
+```{r, echo=FALSE}
+modelo_logistico <- glm(V11 ~ .-cluster, data = trainData, family = binomial)
+modelostep<-stepAIC(modelo_logistico,direction="both")
 ```
 
-el summary es re largo
+Utilizando el método stepwise ajustamos un modelo GLM que presidiera el valor de la variable V11, este se quedó con las variables V3 (actividad física insuficiente), V7 (diabetes) y V8 (prevalencia de bolsa) de las variables ENT, siendo la última la más importante con un coeficiente de casi \$3\$ . Luego también mantuvo las variables sexo, edad y S, C, P y O.
+
+Observando ahora la curva ROC del modelo obtenemos lo siguiente.
 
 ```{r}
-predicciones <- predict(modelo_logistico, newdata = testData, type = "response")
+predicciones <- predict(modelostep, newdata = testData, type = "response")
 roc_obj <- roc(testData$V11, predicciones)
 plot(roc_obj, col = "blue")
 
 ```
 
-```{r}
+```{r, echo=FALSE}
 best_threshold <- coords(roc_obj, "best", ret = "threshold")
 best_threshold = as.numeric(best_threshold)
-best_threshold
 
 ```
 
+De la cual podemos obtener que el punto de corte con menor error en la parte de entrenamiento de la muestra es `r round(best_threshold,3)` , el cual es considerablemente mayor de \$0,5\$, esto nos puede dar a intuir que el modelo está dando valores en general cercanos a \$1\$.
+
+Si observamos la matriz de confusión para la muestra de testeo tenemos lo siguiente
+
 ```{r}
 
-predicciones <- predict(modelo_logistico, newdata = testData, type = "response")
+predicciones <- predict(modelostep, newdata = testData, type = "response")
 
 predicciones_clase <- ifelse(predicciones > best_threshold, 1, 0)
 predicciones_clase <- ifelse(predicciones_clase == 1, "si", "no") %>% factor(levels = c("si", "no"))
@@ -412,3 +414,5 @@ conf_matrix <- confusionMatrix(predicciones_clase, testData$V11)
 conf_matrix
 
 ```
+
+Podemos ver que en general el modelo tiende a sobreestimar la cantidad de individuos con prevalencia de PIP, teniendo un error de aproximadamente un $50\%$ cuando estos no cuentan con PIP.

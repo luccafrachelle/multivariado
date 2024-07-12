@@ -43,8 +43,7 @@ En estos, la distancia a utilizar es seleccionada según las características de
 
 La **similaridad de Gower** para dos individuos $i$, $j$ se calcula como:
 
-$$\delta_{ij}=\frac{1}{T}\sum^T_{t=1} \delta_{ijt}$$
-donde $\delta_{ijt}$ es la similaridad entre ambos individuos en la variable t y $T$ es la cantidad de variables.
+$$\delta_{ij}=\frac{1}{T}\sum^T_{t=1} \delta_{ijt}$$ donde $\delta_{ijt}$ es la similaridad entre ambos individuos en la variable t y $T$ es la cantidad de variables.
 
 El método de clustering jerárquico que se usará será el **método de Ward**. El cual se basa en minimizar la varianza intra-grupos resultante de la agregación de dos grupos. Dicha varianza se calcula en función de la distancia de los individuos al centro de gravedad de su grupo en cada etapa.
 
@@ -121,6 +120,7 @@ Como la mayoría de ellos plantean 2 como la cantidad aconsejable, se continuar�
 siluetaW<-silhouette(cutree(W.DG , 2) , DG)
 fviz_silhouette(siluetaW)$a
 ```
+
 ```{r}
 fviz_silhouette(siluetaW, print.summary = F)
 ```
@@ -142,7 +142,6 @@ a <- datos2 %>% ggplot() + geom_boxplot(aes(x = grupoW, y = edad, fill = factor(
 b <- datos2 %>% ggplot() + geom_point(aes(x = edad, y = CPO, color = factor(grupoW))) + labs(title = "Edad vs CPO por cluster", color="Cluster")
 grid.arrange(a,b, ncol=2)
 ```
-
 
 Los clusters parecen estar divididos entre quienes son menores y mayores a 47 años. También se observa que aquéllos mayores a dicha edad, son los que presentan un CPO en general más alto.
 
@@ -338,7 +337,7 @@ modelo_logistico <- glm(V11 ~ .-cluster, data = trainData, family = binomial)
 modelostep<-stepAIC(modelo_logistico,direction="both")
 ```
 
-Utilizando el método stepwise ajustamos un modelo GLM que presidiera el valor de la variable V11, este se quedó con las variables V3 (actividad física insuficiente), V7 (diabetes) y V8 (prevalencia de bolsa) de las variables ENT, siendo la última la más importante con un coeficiente de casi \$3\$ . Luego también mantuvo las variables sexo, edad y S, C, P y O.
+Utilizando el método stepwise ajustamos un modelo GLM que prediciera el valor de la variable V11, este se quedó con las variables V3 (actividad física insuficiente), V7 (diabetes) y V8 (prevalencia de bolsa) de las variables ENT, siendo la última la más importante con un coeficiente de casi \$3\$ . Luego también mantuvo las variables sexo, edad y S, C, P y O.
 
 Observando ahora la curva ROC del modelo obtenemos lo siguiente.
 
@@ -373,3 +372,57 @@ conf_matrix
 ```
 
 Podemos ver que en general el modelo tiende a sobreestimar la cantidad de individuos con prevalencia de PIP, teniendo un error de aproximadamente un $50\%$ cuando estos no cuentan con PIP.
+
+
+### Extra no paramétrico
+
+Como agregado al trabajo se realizó un análisis de clasificación no paramétrico, utilizando el método de K vecinos más cercanos, para intentar predecir la variable V11.
+
+Se van a usar las mismas variables que en el análisis anterior, para poder comparar los resultados. Que son V11 ~ V3 + V8 + sexo + edad + S + C + P + O
+
+
+```{r}
+trainData <- trainData %>% dplyr::select(V11, V3, V8, sexo, edad, S, C, P, O)
+testData <- testData %>% dplyr::select(V11, V3, V8, sexo, edad, S, C, P, O)
+```
+
+```{r}
+modelo_knn <- train(V11 ~ ., data = trainData, method = "knn", preProcess = c("center", "scale"), tuneLength = 10)
+```
+
+```{r}
+predicciones_knn <- predict(modelo_knn, newdata = testData)
+```
+
+```{r}
+conf_matrix_knn <- confusionMatrix(predicciones_knn, testData$V11)
+```
+
+
+```{r}
+conf_matrix_knn
+```
+El modelo en lineas generales funciona un poco mejor. Predice de mejor forma los casos en los que hay prevalencia de PIP a costa de tener un error mayor en los casos en los que no hay prevalencia de PIP ( clasificandolo como si en prevalencia de PIP).
+
+
+
+
+
+Curva AUC
+
+```{r}
+probs <- predict(modelo_knn, newdata = testData, type = "prob")
+auc_knn <- roc(testData$V11, probs$si)
+plot(auc_knn, col = "blue")
+```
+
+```{r}
+optimal_threshold <- coords(auc_knn, "best", ret = "threshold")
+```
+En este caso el punto de corte óptimo es de `r round(as.numeric(optimal_threshold),3)`. Que es un poco mayor que en el modelo anterior. Lo cual tiene sentido ya que este modelo tiende a clasificar más casos como prevalencia de PIP. Por lo que tiene sentido la probialidad de corte sea mayor.
+
+
+
+
+
+

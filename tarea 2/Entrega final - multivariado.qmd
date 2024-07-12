@@ -37,17 +37,20 @@ Los clusters de tipo jerárquico se entienden como particiones encajadas que deb
 
 -   **Agregativo**: Cada individuo comienza siendo un cluster unitario que se une con otros en las etapas siguientes hasta formarse un único cluster que cuenta con todos los individuos.
 
-En nuestro análisis usaremos únicamente los de tipo agregativo.
+En nuestro análisis usaremos únicamente clusters de tipo agregativo.
 
-En este tipo de clustering, la distancia a utilizar es seleccionada según las características de las variables en cuestión, así como también la relación entre las mismas. En nuestro caso, como contamos con variables tanto numéricas como categóricas, es necesario usar la distancia de Gower.
+En estos, la distancia a utilizar es seleccionada según las características de las variables en cuestión, así como también la relación entre las mismas. En nuestro caso, como contamos con variables tanto numéricas como categóricas, es necesario usar la similaridad de Gower, a través de la cual se calcula una distancia comparable, independientemente del tipo de variable.
 
-La **distancia de Gower** se calcula de distinta manera según el tipo de variable, pero siempre los valores obtenidos se encuentran entre 0 y 1, lo que permite que estas distancias sean comparables.
+La **similaridad de Gower** para dos individuos $i$, $j$ se calcula como:
 
-... completar
+$$\delta_{ij}=\frac{1}{T}\sum^T_{t=1} \delta_{ijt}$$
+donde $\delta_{ijt}$ es la similaridad entre ambos individuos en la variable t y $T$ es la cantidad de variables.
+
+El método de clustering jerárquico que se usará será el **método de Ward**. El cual se basa en minimizar la varianza intra-grupos resultante de la agregación de dos grupos. Dicha varianza se calcula en función de la distancia de los individuos al centro de gravedad de su grupo en cada etapa.
 
 **Clusters no jerárquicos:**
 
-Para el análisis usaremos unicamente los clusters no jerárquicos por el método de **K-means**. Este consiste en seleccionas K centros provisorios, los cuales inducen una partición del conjunto de individuos en k subgrupoC. Luego, se vuelven a seleccionar nuevos centros de gravedad, en base a las distancias de los individuos del grupo a los centros. Esta nueva partición cuenta con una reducción de la variabilidad intragrupo. Este proceso se repite siempre y cuando las particiones en etapas sucesivas sean diferentes o hasta que se alcanza un número de iteraciones determinado.
+Para el análisis usaremos unicamente los clusters no jerárquicos por el método de **K-means**. Este consiste en seleccionas K centros provisorios, los cuales inducen una partición del conjunto de individuos en k subgrupoC. Luego, se vuelven a seleccionar nuevos centros de gravedad, en base a las distancias de los individuos del grupo a los centros. Esta nueva partición cuenta con una reducción de la variabilidad intra-grupo. Este proceso se repite siempre y cuando las particiones en etapas sucesivas sean diferentes o hasta que se alcanza un número de iteraciones determinado.
 
 **Análisis Discriminante**
 
@@ -84,14 +87,10 @@ datos = datos %>% select(-c(16, 22, 23))
 
 ```{r, message=FALSE}
 DG<-daisy(datos,metric = "gower")
-fviz_dist(DG, lab_size = 3)
+#fviz_dist(DG, lab_size = 3)
 ```
 
-...decir algo del gráfico o sacar
-
-**Método de Ward**
-
-Se utiliza el método de Ward para formar los clusters, los cuales se van agrupando en cada etapa de la forma en que se muestra en el siguiente dendograma.
+Se utiliza el **método de Ward** para formar los clusters, los cuales se van agrupando en cada etapa de la forma en que se muestra en el siguiente dendograma.
 
 ```{r}
 W.DG<-agnes(DG, diss=TRUE,method = "ward")
@@ -120,7 +119,7 @@ siluetaW<-silhouette(cutree(W.DG , 2) , DG)
 fviz_silhouette(siluetaW)
 ```
 
-...completar (son 2 salidas, tabla y gráfico)
+El ancho de silueta es bajo, por lo que podría haber una mejor forma de agrupar las observaciones. Las observaciones que se encuentran por debajo del 0 posiblemente se encuentran mal clasificadas.
 
 ```{r}
 datos2 <- datos
@@ -133,7 +132,7 @@ b <- datos2 %>% ggplot() + geom_point(aes(x = edad, y = CPO, color = factor(grup
 grid.arrange(a,b, ncol=2)
 ```
 
-Los clusters parecen estar divididos entre quienes son menores y mayores a 47 años. También se observa que aquéllos mayores a esta edad, son los que presentan un CPO en general más alto.
+Los clusters parecen estar divididos entre quienes son menores y mayores a 47 años. También se observa que aquéllos mayores a dicha edad, son los que presentan un CPO en general más alto.
 
 ```{r}
 c <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V8) + labs(title = "Clusters por prevalencia de bolsa", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
@@ -146,69 +145,19 @@ grid.arrange(c,d,e,f, ncol=2)
 
 La diferencia más notoria se observa en la pérdida dentaria, donde el primer grupo, aquellas personas más mayores, en su mayoría no presenta pérdida dentaria, mientras que el segundo grupo, aquéllos más jóvenes, cuentan con una frecuencia alta de la misma variable. Las demás variables no parecen mostrar diferencias significativas entre las categorías según el grupo.
 
-```{r}
-datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V1) + labs(title = "Distribución de clusters por si fuma")datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V4) + labs(title = "Distribución de clusters por peso")
-
-```
-
-**Método del vecino más lejano**
-
-```{r, message=FALSE}
-cindexC <- NbClust(data=NULL, diss=DG, distance=NULL, method="complete", index="cindex")[[2]][1]
-silC <- NbClust(data=NULL, diss=DG, distance=NULL, method="complete", index="silhouette")[[2]][1]
-mcclainC <- NbClust(data=NULL, diss=DG, distance=NULL, method="complete", index="mcclain")[[2]][1]
-dunnC <- NbClust(data=NULL, diss=DG, distance=NULL, method="complete", index="dunn")[[2]][1]
-freyC <- NbClust(data=NULL, diss=DG, distance=NULL, method="complete", index="frey")[[2]][1]
-
-nro_clustersC <- as.data.frame(t(c(cindexC, silC, mcclainC, dunnC, freyC)))
-colnames(nro_clustersC) <- c("Cindex", "Silohuette", "Mcclain", "Dunn", "Frey")
-rownames(nro_clustersC) <- c("Complete")
-kable(nro_clustersC)
-```
 
 ```{r}
-C.DG<-agnes(DG, diss=TRUE,method = "complete")
-fviz_dend(C.DG)
+a2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V1) + labs(title = "Fumador", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+b2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V2) + labs(title = "Consumo nocivo de alcohol", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+c2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V3) + labs(title = "Actividad física insuficiente", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+d2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V4) + labs(title = "Sobrepeso", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+e2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V6) + labs(title = "Hipertensión", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+f2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V7) + labs(title = "Diabetes", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+
+grid.arrange(a2,b2,c2,d2, e2,f2,ncol=3)
 ```
 
-```{r}
-siluetaC<-silhouette(cutree(C.DG , 2) , DG)
-fviz_silhouette(siluetaC)
-```
-
-```{r}
-datos$grupoC<-cutree(C.DG , 2)
-datos2$grupoC<-as.factor(datos$grupoC)
-
-A <- datos2 %>% ggplot() + geom_bar(aes(x = grupoC, fill = factor(grupoC))) + labs(title = "Distribución de clusters", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
-## edad
-B <- datos2 %>% ggplot() + geom_boxplot(aes(x = grupoC, y = edad, fill = factor(grupoC))) + labs(title = "Edad por cluster", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
-
-grid.arrange(A,B,ncol=2)
-```
-
-```{r}
-## cluster por niveledrec
-datos2 %>% ggplot() + geom_bar(aes(x = grupoC, fill = factor(grupoC))) + facet_wrap(~niveledu) + labs(title = "Distribución de clusters por nivel educativo", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
-```
-
-```{r}
-# Por ingreso
-datos2 %>% ggplot() + geom_bar(aes(x = grupoC, fill = factor(grupoC))) + facet_wrap(~ingresos) + labs(title = "Distribución de clusters por ingresos", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
-```
-
-```{r}
-### respecto a cpo y edad
-datos2 %>% ggplot() + geom_point(aes(x = edad, y = CPO, color = factor(grupoC))) + labs(title = "Edad vs CPO por cluster", color="Cluster")
-```
-
-```{r}
-par(mfrow=c(2,2))
-datos2 %>% ggplot() + geom_bar(aes(x = grupoC, fill = factor(grupoC))) + facet_wrap(~V8) + labs(title = "Distribución de clusters por prevalencia de bolsa", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
-datos2 %>% ggplot() + geom_bar(aes(x = grupoC, fill = factor(grupoC))) + facet_wrap(~V9) + labs(title = "Distribución de clusters por perdida dentaria", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
-datos2 %>% ggplot() + geom_bar(aes(x = grupoC, fill = factor(grupoC))) + facet_wrap(~V10) + labs(title = "Distribución de clusters por prevalencia de caries", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
-datos2 %>% ggplot() + geom_bar(aes(x = grupoC, fill = factor(grupoC))) + facet_wrap(~V10) + labs(title = "Distribución de clusters por prevalencia de PIP", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
-```
+El cluster 2 es el que presenta la mayor proporción en la categoría "no" entre aquellas variables comportamentales y de enfermedades.
 
 ## Cluster No Jerárquico
 
@@ -296,10 +245,10 @@ datos %>% ggplot() + geom_bar(aes(x = cluster, fill = factor(cluster))) + facet_
 
 Se observa que el cluster más joven es el cluster 2, el cual tiene la menor prevalencia de PIP. En contraste, el cluster 4 tiene la mayor edad y la mayor prevalencia de PIP. Además, los clusters 1 y 3 tienen una prevalencia de PIP similar.
 
-**Análisis según variables comportamentales**
+**Análisis según factores de incidencia en la salud bucal**
 
 ```{r}
-datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V1) + labs(title = "Distribución de clusters por si fuma")
+datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V1) + labs(title = "Distribución de clusters según si fuma")
 ```
 
 Aquí se observa una diferencia clara entre los cluster en los gráficos anteriores eran mas parecidos: por un lado, el cluster 1 consiste en su mayoría de fumadores y por otro lado, el cluster 3 está compuesto mayormente de no fumadores. El cluster 4, por su parte, también cuenta con una gran proporción de no fumadores.

@@ -1,5 +1,6 @@
 ---
 title: "Entrega final - Multivariado"
+date: "14-07-24"
 author: "Lucca Frachelle, Joaquín Silva, Cecilia Waksman"
 format: beamer
 editor: visual
@@ -135,15 +136,13 @@ datos2$grupoW<-as.factor(datos2$grupoW)
 
 ## Cluster Jerárquico
 
-```{r, fig.height=3}
+```{r}
 ## edad
 a <- datos2 %>% ggplot() + geom_boxplot(aes(x = grupoW, y = edad, fill = factor(grupoW))) + labs(title = "Edad por cluster", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
 ### respecto a cpo y edad
 b <- datos2 %>% ggplot() + geom_point(aes(x = edad, y = CPO, color = factor(grupoW))) + labs(title = "Edad vs CPO por cluster", color="Cluster")
 grid.arrange(a,b, ncol=2)
 ```
-
-Los clusters parecen estar divididos entre quienes son menores y mayores a 47 años. También se observa que aquéllos mayores a dicha edad, son los que presentan un CPO en general más alto.
 
 ## Cluster Jerárquico
 
@@ -183,7 +182,7 @@ df_dummy <- model.matrix(~ . - 1, data = datos)
 df_scaled <- scale(df_dummy)
 ```
 
-```{r, fig.height=3}
+```{r}
 a3 <- fviz_nbclust(df_scaled, kmeans, method = "wss") +
   labs(subtitle = "Codo")
 b3 <- fviz_nbclust(df_scaled, kmeans, method = "silhouette") +
@@ -208,13 +207,13 @@ La distribución de personas entre los clusters es bastante homogénea. No hay u
 
 ## Cluster No Jerárquico
 
-```{r , fig.dim=c(8,4)}
+```{r}
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~niveledu) + labs(title = "Distribución de clusters por nivel educativo")
 ```
 
 ## Cluster No Jerárquico
 
-```{r ,fig.dim=c(8,4)}
+```{r}
 datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~ingresos) + labs(title = "Distribución de clusters por ingresos")
 
 ```
@@ -223,7 +222,7 @@ Los ingresos no parecen influir en la variabilidad entre los clusters.
 
 ## Cluster No Jerárquico
 
-```{r, fig.height=3}
+```{r}
 aa <- datos %>% ggplot() + geom_boxplot(aes(x = cluster, y = edad, fill = cluster)) + labs(title = "Edad por cluster")
 bb <- datos %>% ggplot() + geom_point(aes(x = edad, y = CPO, color = cluster)) + labs(title = "Edad vs CPO por cluster")
 grid.arrange(aa,bb, ncol=2)
@@ -233,7 +232,7 @@ grid.arrange(aa,bb, ncol=2)
 
 **Análisis problemas odontológicos**
 
-```{r, fig.height=3}
+```{r}
 cc <- datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V8) + labs(title = "Distribución de clusters por prevalencia de bolsa")
 dd <- datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V9) + labs(title = "Distribución de clusters por perdida dentaria")
 ee <- datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V11) + labs(title = "Distribución de clusters por prevalencia de PIP")
@@ -244,7 +243,7 @@ grid.arrange(cc,dd, ee, ncol=2, nrow=2)
 
 **Análisis según factores de incidencia en la salud bucal**
 
-```{r, fig.height=3}
+```{r}
 ff <- datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V1) + labs(title = "Distribución de clusters según si fuma")
 gg <- datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V4) + labs(title = "Distribución de clusters por peso")
 grid.arrange(ff,gg, ncol=2, nrow=2)
@@ -276,6 +275,8 @@ grid.arrange(ff,gg, ncol=2, nrow=2)
 
 -   **Fumar:** La mayoría no fuma.
 
+## Resumen cluster no jerárquico
+
 **Cluster 1**
 
 -   **Edad:** Similar al cluster 3.
@@ -304,8 +305,6 @@ grid.arrange(ff,gg, ncol=2, nrow=2)
 
 ## Análisis de discriminante logistico
 
-Teniendo en cuenta que la prevalencia de pip (V11) es un factor importante de riesgo odnologico se procede a realizar un análisis de discriminante logistico. Para intentar predecir la prevalencia de pip en base a las otras variables.
-
 ```{r}
 trainIndex <- createDataPartition(datos$V11, p = 0.7, list = FALSE)
 trainData <- datos[trainIndex, ]
@@ -318,9 +317,7 @@ modelo_logistico <- glm(V11 ~ .-cluster, data = trainData, family = binomial)
 modelostep<-stepAIC(modelo_logistico,direction="both")
 ```
 
-Utilizando el método stepwise ajustamos un modelo GLM que prediciera el valor de la variable V11, este se quedó con las variables V3 (actividad física insuficiente), V7 (diabetes) y V8 (prevalencia de bolsa) de las variables ENT, siendo la última la más importante con un coeficiente de casi \$3\$ . Luego también mantuvo las variables sexo, edad y S, C, P y O.
-
-Observando ahora la curva ROC del modelo obtenemos lo siguiente.
+Curva ROC modelo GLM con V3 (actividad física insuficiente), V7 (diabetes), V8 (prevalencia de bolsa), sexo, S, C, P y O.
 
 ```{r}
 predicciones <- predict(modelostep, newdata = testData, type = "response")
@@ -335,9 +332,9 @@ best_threshold = as.numeric(best_threshold)
 
 ```
 
-De la cual podemos obtener que el punto de corte con menor error en la parte de entrenamiento de la muestra es `r round(best_threshold,3)` , el cual es considerablemente mayor de \$0,5\$, esto nos puede dar a intuir que el modelo está dando valores en general cercanos a \$1\$.
+Mejor punto de corte ´r round(best_threshold,3)´
 
-Si observamos la matriz de confusión para la muestra de testeo tenemos lo siguiente
+## Análisis de discriminante logistico
 
 ```{r}
 
@@ -351,9 +348,8 @@ conf_matrix <- confusionMatrix(predicciones_clase, testData$V11)
 conf_matrix$table %>% kable()
 ```
 
-Podemos ver que en general el modelo tiende a sobreestimar la cantidad de individuos con prevalencia de PIP, teniendo un error de aproximadamente un $50\%$ cuando estos no cuentan con PIP.
 
-### Extra no paramétrico
+## Extra no paramétrico
 
 Como agregado al trabajo se realizó un análisis de clasificación no paramétrico, utilizando el método de K vecinos más cercanos, para intentar predecir la variable V11.
 
@@ -381,6 +377,8 @@ conf_matrix_knn <- confusionMatrix(predicciones_knn, testData$V11)
 conf_matrix_knn$table %>% kable()
 ```
 
+## Extra no paramétrico
+
 ```{r}
 conf_matrix_knn$overall %>% round(3) %>% as.data.frame() %>% setNames("Métrica") %>% 
   kable()
@@ -388,9 +386,9 @@ conf_matrix_knn$overall %>% round(3) %>% as.data.frame() %>% setNames("Métrica"
 
 Este modelo en general funciona mejor que el logístico. Predice de mejor forma los casos en los que hay prevalencia de PIP a costa de tener un error mayor en los casos en los que no hay prevalencia de PIP ( clasificandolo como si en prevalencia de PIP).
 
-### Curva ROC
+## Curva ROC
 
-```{r}
+```{r, fig.height=5}
 probs <- predict(modelo_knn, newdata = testData, type = "prob")
 auc_knn <- roc(testData$V11, probs$si)
 plot(auc_knn, col = "blue")
@@ -406,9 +404,17 @@ En este caso el punto de corte óptimo es de `r round(as.numeric(optimal_thresho
 
 ## Conclusiones finales
 
-Se observa que los clústeres jerárquicos no fueron útiles para separar la población en grupos que se diferencien en las variables.
+Clústeres jerárquicos: 
 
-En los clústeres no jerárquicos se reveló que la edad es un factor importante para separar a la población en grupos, siendo los más jóvenes los que presentan pérdida dentaria y prevalencia de PIP más baja. Mientras que los más viejos presentan un CPO más alto y una prevalencia de PIP más alta. Por otro lado, se identificaron dos grupos que a priori parecían similares; sin embargo, al analizar las variables, se observa que quedan diferenciados por variables de riesgo. Uno de estos clústeres está compuesto por fumadores y el otro por personas con sobrepeso. A su vez, se pudo validar alguna de las conclusiones de la primera entrega, como la relación entre el CPO y la edad.
+- No fueron útiles para separar la población en grupos que se diferencien en las variables.
 
-Por otro lado, el análisis discriminante logístico y el de K vecinos más cercanos permitieron predecir la prevalencia de PIP en base a las variables de la muestra, siendo el modelo de K vecinos más cercanos el que mejor se ajusta a los datos, aunque ambos modelos funcionan bien.
+Clústeres no jerárquicos: 
+
+- La edad es un factor importante para separar a la población en grupos
+
+- Se identifican dos grupos que a priori parecían similares; sin embargo, al analizar las variables, se observa que quedan diferenciados por variables de riesgo. Uno de estos clústeres está compuesto por fumadores y el otro por personas con sobrepeso.
+
+Análisis discriminante logístico y K vecinos más cercanos: 
+
+- Permitieron predecir la prevalencia de PIP en base a las variables de la muestra, siendo el modelo de K vecinos más cercanos el que mejor se ajusta a los datos, aunque ambos modelos funcionan bien.
 

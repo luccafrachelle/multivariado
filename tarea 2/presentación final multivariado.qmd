@@ -1,0 +1,414 @@
+---
+title: "Entrega final - Multivariado"
+author: "Lucca Frachelle, Joaquín Silva, Cecilia Waksman"
+format: beamer
+editor: visual
+echo: false
+message: false
+warning: false
+---
+
+```{r}
+#| output: false
+library(tidyverse)
+library(cluster)
+library(NbClust)
+library(factoextra)
+library(knitr)
+library(gridExtra)
+library(caret)
+library(pROC)
+library(MASS)
+
+```
+
+## Datos
+
+Los datos utilizados en este análisis surgen de un estudio epidemiológico llevado a cabo en la Facultad de Odontología de la Universidad de la República, Uruguay, durante el período 2015-2016. Los mismos son recogidos de 602 individuos que acudieron a consulta.
+
+Contamos con variables binarias de tipo: comportamental, ENT, odnontológicas. Además contamos con las variables: sexo, edad, ingreso, C, P, O y CPO, donde C es la cantidad de dientes con caries, P es la cantidad de dientes perdidos debido a caries y O la cantidad de dientes con caries obturadas, además CPO es la suma de las tres anteriores.
+
+## Datos
+
+```{r}
+datos <- data.frame(
+  Variable = c("V1", "V2", "V3", "V4", "V5", "V6",
+               "V7", "V8", "V9", "V10", "V11"),
+  Descripción = c(
+    "Fuma a diario", 
+    "Consumo nocivo de alcohol", 
+    "Actividad física insuficiente", 
+    "IMC sobrepeso/obesidad", 
+    "Razón de Cintura Cadera", 
+    "Hipertensión", 
+    "Diabetes", 
+    "Prev. bolsa", 
+    "Pérdida Dentaria", 
+    "Prevalencia de Caries", 
+    "Prevalencia de PIP"
+  ),
+  Bloque = c(1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3),
+  Tipo = c(
+    "Comportamental", 
+    "Comportamental", 
+    "Comportamental", 
+    "ENT", 
+    "ENT", 
+    "ENT", 
+    "ENT", 
+    "Odontológicas", 
+    "Odontológicas", 
+    "Odontológicas", 
+    "Odontológicas"
+  )
+)
+
+kable(datos, col.names = c("Variable", "Descripción",
+  "Bloque", "Tipo"), caption = "Tabla de Variables")
+
+```
+
+```{r}
+load('./data/bfm.RData')
+```
+
+```{r}
+datos = datos %>% dplyr::select(-c(17:22 , 28)) %>% dplyr::filter(!if_any(c(1:23), is.na))
+datos = datos %>% dplyr::select(-c(16, 22, 23))
+```
+
+## Cluster Jerárquico
+
+**Dendograma**
+
+```{r, message=FALSE, echo=FALSE}
+DG<-daisy(datos,metric = "gower")
+#fviz_dist(DG, lab_size = 3)
+```
+
+Se utiliza el **método de Ward** para formar los clusters, los cuales se van agrupando en cada etapa de la forma en que se muestra en el siguiente dendograma.
+
+```{r , warning=FALSE}
+W.DG<-agnes(DG, diss=TRUE,method = "ward")
+fviz_dend(W.DG, show_labels = F)
+```
+
+
+## Cluster Jerárquico
+
+Para elegir la cantidad de clusters, se recurre a los índices: *Cindex*, *Silouhette*, *Mcclain*, *Dunn* y *Frey*.
+
+```{r}
+#| output: false
+cindexW <- NbClust(data=NULL, diss=DG, distance=NULL, method="ward.D", index="cindex")[[2]][1]
+silW <- NbClust(data=NULL, diss=DG, distance=NULL, method="ward.D", index="silhouette")[[2]][1]
+mcclainW <- NbClust(data=NULL, diss=DG, distance=NULL, method="ward.D", index="mcclain")[[2]][1]
+dunnW <- NbClust(data=NULL, diss=DG, distance=NULL, method="ward.D", index="dunn")[[2]][1]
+freyW <- NbClust(data=NULL, diss=DG, distance=NULL, method="ward.D", index="frey")[[2]][1]
+
+```
+
+```{r}
+nro_clustersW <- as.data.frame(t(c(cindexW, silW, mcclainW, dunnW, freyW)))
+colnames(nro_clustersW) <- c("Cindex", "Silohuette", "Mcclain", "Dunn", "Frey")
+rownames(nro_clustersW) <- c("Ward")
+kable(nro_clustersW)
+```
+
+Como la mayoría de ellos plantean 2 como la cantidad aconsejable, se continuará el análisis para clusters jerárquicos en función de esta división.
+
+## Cluster Jerárquico
+
+```{r}
+siluetaW <- silhouette(cutree(W.DG, 2), DG)
+fviz_silhouette(siluetaW )
+```
+
+El ancho de silueta es bajo, por lo que podría haber una mejor forma de agrupar las observaciones. Las observaciones que se encuentran por debajo del 0 posiblemente se encuentran mal clasificadas.
+
+
+```{r}
+datos2 <- datos
+datos2$grupoW<-cutree(W.DG , 2)
+datos2$grupoW<-as.factor(datos2$grupoW)
+```
+
+## Cluster Jerárquico
+
+```{r, fig.height=3}
+## edad
+a <- datos2 %>% ggplot() + geom_boxplot(aes(x = grupoW, y = edad, fill = factor(grupoW))) + labs(title = "Edad por cluster", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+### respecto a cpo y edad
+b <- datos2 %>% ggplot() + geom_point(aes(x = edad, y = CPO, color = factor(grupoW))) + labs(title = "Edad vs CPO por cluster", color="Cluster")
+grid.arrange(a,b, ncol=2)
+```
+
+Los clusters parecen estar divididos entre quienes son menores y mayores a 47 años. También se observa que aquéllos mayores a dicha edad, son los que presentan un CPO en general más alto.
+
+## Cluster Jerárquico
+
+**Variables odontológicas**
+
+```{r}
+c <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V8) + labs(title = "Prevalencia de bolsa", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+d <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V9) + labs(title = "Perdida dentaria", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+e <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V10) + labs(title = "Prevalencia de caries", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+f <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V10) + labs(title = "Prevalencia de PIP", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+
+grid.arrange(c,d,e,f, ncol=2)
+```
+
+## Cluster Jerárquico
+
+**Variables comportamentales y ENT**
+
+```{r , fig.height=6}
+a2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V1) + labs(title = "Fumador", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+b2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V2) + labs(title = "Consumo nocivo de alcohol", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+c2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V3) + labs(title = "Actividad física insuficiente", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+d2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V4) + labs(title = "Sobrepeso", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+e2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V6) + labs(title = "Hipertensión", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+f2 <- datos2 %>% ggplot() + geom_bar(aes(x = grupoW, fill = factor(grupoW))) + facet_wrap(~V7) + labs(title = "Diabetes", fill="Cluster")+ylab("Frecuencia")+xlab("Cluster")
+
+grid.arrange(a2,b2,c2,d2, e2,f2,ncol=2)
+```
+
+El cluster 2 presenta la mayor proporción en la categoría "no" entre aquellas variables comportamentales y de enfermedades.
+
+## Cluster No Jerárquico
+
+```{r}
+df_dummy <- model.matrix(~ . - 1, data = datos)
+
+df_scaled <- scale(df_dummy)
+```
+
+```{r, fig.height=3}
+a3 <- fviz_nbclust(df_scaled, kmeans, method = "wss") +
+  labs(subtitle = "Codo")
+b3 <- fviz_nbclust(df_scaled, kmeans, method = "silhouette") +
+  labs(subtitle = "Silueta")
+grid.arrange(a3,b3, ncol=2)
+```
+
+## Cluster No Jerárquico
+
+```{r}
+set.seed(123456)
+kmeans5 <- kmeans(df_scaled, 4, iter.max = 10000)
+datos = datos %>% mutate(cluster = kmeans5$cluster)
+datos = datos %>% mutate(cluster = as.factor(cluster))
+```
+
+```{r, fig.height=3, fig.width=5}
+datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + labs(title = "Distribución de clusters")
+```
+
+La distribución de personas entre los clusters es bastante homogénea. No hay un cluster que se destaque por tener una cantidad de personas mucho mayor que los otros.
+
+## Cluster No Jerárquico
+
+```{r , fig.dim=c(8,4)}
+datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~niveledu) + labs(title = "Distribución de clusters por nivel educativo")
+```
+
+## Cluster No Jerárquico
+
+```{r ,fig.dim=c(8,4)}
+datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~ingresos) + labs(title = "Distribución de clusters por ingresos")
+
+```
+
+Los ingresos no parecen influir en la variabilidad entre los clusters.
+
+## Cluster No Jerárquico
+
+```{r, fig.height=3}
+aa <- datos %>% ggplot() + geom_boxplot(aes(x = cluster, y = edad, fill = cluster)) + labs(title = "Edad por cluster")
+bb <- datos %>% ggplot() + geom_point(aes(x = edad, y = CPO, color = cluster)) + labs(title = "Edad vs CPO por cluster")
+grid.arrange(aa,bb, ncol=2)
+```
+
+## Cluster No Jerárquico
+
+**Análisis problemas odontológicos**
+
+```{r, fig.height=3}
+cc <- datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V8) + labs(title = "Distribución de clusters por prevalencia de bolsa")
+dd <- datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V9) + labs(title = "Distribución de clusters por perdida dentaria")
+ee <- datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V11) + labs(title = "Distribución de clusters por prevalencia de PIP")
+grid.arrange(cc,dd, ee, ncol=2, nrow=2)
+```
+
+## Cluster No Jerárquico
+
+**Análisis según factores de incidencia en la salud bucal**
+
+```{r, fig.height=3}
+ff <- datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V1) + labs(title = "Distribución de clusters según si fuma")
+gg <- datos %>% ggplot() + geom_bar(aes(x = cluster, fill = cluster)) + facet_wrap(~V4) + labs(title = "Distribución de clusters por peso")
+grid.arrange(ff,gg, ncol=2, nrow=2)
+```
+
+## Resumen cluster no jerárquico
+
+**Cluster 2**
+
+-   **Edad:** Las personas más jóvenes.
+
+-   **CPO:** Bajo.
+
+-   **Pérdida Dentaria:** Presenta pérdida dentaria.
+
+-   **Prevalencia de PIP:** Mayormente no tiene prevalencia de PIP.
+
+-   **Fumar:** La mayoría no fuma.
+
+**Cluster 4**
+
+-   **Edad:** Las edades más altas.
+
+-   **CPO:** Los CPO más altos.
+
+-   **Pérdida Dentaria:** No tienen pérdida dentaria.
+
+-   **Prevalencia de PIP:** Tienen prevalencia de PIP.
+
+-   **Fumar:** La mayoría no fuma.
+
+**Cluster 1**
+
+-   **Edad:** Similar al cluster 3.
+
+-   **CPO:** Un poco mayor que el cluster 3.
+
+-   **Pérdida Dentaria:** No está bien explicado por la pérdida dentaria.
+
+-   **Prevalencia de PIP:** Prevalencia de PIP un poco alta.
+
+-   **Fumar:** La mayoría fuma.
+
+**Cluster 3**
+
+-   **Edad:** Similar al cluster 1.
+
+-   **CPO:** Un poco menor que el cluster 1.
+
+-   **Pérdida Dentaria:** Presenta pérdida dentaria.
+
+-   **Prevalencia de PIP:** Prevalencia de PIP un poco alta.
+
+-   **Fumar:** La mayoría no fuma.
+
+-   **Peso:** La mayoría tiene sobrepeso.
+
+## Análisis de discriminante logistico
+
+Teniendo en cuenta que la prevalencia de pip (V11) es un factor importante de riesgo odnologico se procede a realizar un análisis de discriminante logistico. Para intentar predecir la prevalencia de pip en base a las otras variables.
+
+```{r}
+trainIndex <- createDataPartition(datos$V11, p = 0.7, list = FALSE)
+trainData <- datos[trainIndex, ]
+testData <- datos[-trainIndex, ]
+```
+
+```{r}
+#| output: false
+modelo_logistico <- glm(V11 ~ .-cluster, data = trainData, family = binomial)
+modelostep<-stepAIC(modelo_logistico,direction="both")
+```
+
+Utilizando el método stepwise ajustamos un modelo GLM que prediciera el valor de la variable V11, este se quedó con las variables V3 (actividad física insuficiente), V7 (diabetes) y V8 (prevalencia de bolsa) de las variables ENT, siendo la última la más importante con un coeficiente de casi \$3\$ . Luego también mantuvo las variables sexo, edad y S, C, P y O.
+
+Observando ahora la curva ROC del modelo obtenemos lo siguiente.
+
+```{r}
+predicciones <- predict(modelostep, newdata = testData, type = "response")
+roc_obj <- roc(testData$V11, predicciones)
+plot(roc_obj, col = "blue")
+
+```
+
+```{r, echo=FALSE}
+best_threshold <- coords(roc_obj, "best", ret = "threshold")
+best_threshold = as.numeric(best_threshold)
+
+```
+
+De la cual podemos obtener que el punto de corte con menor error en la parte de entrenamiento de la muestra es `r round(best_threshold,3)` , el cual es considerablemente mayor de \$0,5\$, esto nos puede dar a intuir que el modelo está dando valores en general cercanos a \$1\$.
+
+Si observamos la matriz de confusión para la muestra de testeo tenemos lo siguiente
+
+```{r}
+
+predicciones <- predict(modelostep, newdata = testData, type = "response")
+
+predicciones_clase <- ifelse(predicciones > best_threshold, 1, 0)
+predicciones_clase <- ifelse(predicciones_clase == 1, "si", "no") %>% factor(levels = c("si", "no"))
+
+
+conf_matrix <- confusionMatrix(predicciones_clase, testData$V11)
+conf_matrix$table %>% kable()
+```
+
+Podemos ver que en general el modelo tiende a sobreestimar la cantidad de individuos con prevalencia de PIP, teniendo un error de aproximadamente un $50\%$ cuando estos no cuentan con PIP.
+
+### Extra no paramétrico
+
+Como agregado al trabajo se realizó un análisis de clasificación no paramétrico, utilizando el método de K vecinos más cercanos, para intentar predecir la variable V11.
+
+Se van a usar las mismas variables que en el análisis anterior, para poder comparar los resultados. Que son V11 \~ V3 + V8 + sexo + edad + S + C + P + O
+
+```{r}
+trainData <- trainData %>% dplyr::select(V11, V3, V8, sexo, edad, S, C, P, O)
+testData <- testData %>% dplyr::select(V11, V3, V8, sexo, edad, S, C, P, O)
+```
+
+```{r}
+set.seed(127716)
+modelo_knn <- train(V11 ~ ., data = trainData, method = "knn", preProcess = c("center", "scale"), tuneLength = 10)
+```
+
+```{r}
+predicciones_knn <- predict(modelo_knn, newdata = testData)
+```
+
+```{r}
+conf_matrix_knn <- confusionMatrix(predicciones_knn, testData$V11)
+```
+
+```{r}
+conf_matrix_knn$table %>% kable()
+```
+
+```{r}
+conf_matrix_knn$overall %>% round(3) %>% as.data.frame() %>% setNames("Métrica") %>% 
+  kable()
+```
+
+Este modelo en general funciona mejor que el logístico. Predice de mejor forma los casos en los que hay prevalencia de PIP a costa de tener un error mayor en los casos en los que no hay prevalencia de PIP ( clasificandolo como si en prevalencia de PIP).
+
+### Curva ROC
+
+```{r}
+probs <- predict(modelo_knn, newdata = testData, type = "prob")
+auc_knn <- roc(testData$V11, probs$si)
+plot(auc_knn, col = "blue")
+```
+
+```{r}
+optimal_threshold <- coords(auc_knn, "best", ret = "threshold")
+```
+
+En este caso el punto de corte óptimo es de `r round(as.numeric(optimal_threshold),3)`. Que es un poco menor que en el modelo de regresión logística. Lo cual tiene sentido ya que este modelo tiende a clasificar más casos como "si" y la mayoría de los errores provienen de clasificar como "si" a casos que en realidad son "no".
+
+\newpage
+
+## Conclusiones finales
+
+Se observa que los clústeres jerárquicos no fueron útiles para separar la población en grupos que se diferencien en las variables.
+
+En los clústeres no jerárquicos se reveló que la edad es un factor importante para separar a la población en grupos, siendo los más jóvenes los que presentan pérdida dentaria y prevalencia de PIP más baja. Mientras que los más viejos presentan un CPO más alto y una prevalencia de PIP más alta. Por otro lado, se identificaron dos grupos que a priori parecían similares; sin embargo, al analizar las variables, se observa que quedan diferenciados por variables de riesgo. Uno de estos clústeres está compuesto por fumadores y el otro por personas con sobrepeso. A su vez, se pudo validar alguna de las conclusiones de la primera entrega, como la relación entre el CPO y la edad.
+
+Por otro lado, el análisis discriminante logístico y el de K vecinos más cercanos permitieron predecir la prevalencia de PIP en base a las variables de la muestra, siendo el modelo de K vecinos más cercanos el que mejor se ajusta a los datos, aunque ambos modelos funcionan bien.
+

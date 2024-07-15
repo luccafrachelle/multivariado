@@ -369,9 +369,18 @@ modelo_knn <- train(V11 ~ ., data = trainData, method = "knn", preProcess = c("c
 predicciones_knn <- predict(modelo_knn, newdata = testData)
 ```
 
+## Extra no paramétrico
+
+```{r}
+modelo_knn$results %>% dplyr::select(1:3) %>% round(2) %>% kable()
+```
+
+
 ```{r}
 conf_matrix_knn <- confusionMatrix(predicciones_knn, testData$V11)
 ```
+
+## Extra no paramétrico
 
 ```{r}
 conf_matrix_knn$table %>% kable()
